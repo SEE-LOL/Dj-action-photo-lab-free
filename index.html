@@ -1,0 +1,3744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACTION LAB · DJI Osmo Action 摄影灵感与参数工作站</title>
+  <style>
+    :root {
+      --bg-base: #07090d;
+      --bg-surface: #10141d;
+      --bg-card: #151a26;
+      --bg-elevated: #1d2436;
+      --bg-glass: rgba(16, 20, 29, 0.86);
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --text-muted: #64748b;
+      --dji-orange: #ff5500;
+      --dji-orange-soft: rgba(255, 85, 0, 0.15);
+      --dji-cyan: #00d2ff;
+      --dji-cyan-soft: rgba(0, 210, 255, 0.14);
+      --dji-emerald: #10b981;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --border-hover: rgba(255, 255, 255, 0.28);
+      --radius-xl: 20px;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      line-height: 1.55;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(255, 85, 0, 0.12), transparent 34%),
+        radial-gradient(circle at 85% 18%, rgba(0, 210, 255, 0.1), transparent 36%);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 1. Cinematic Camera Viewfinder Boot Intro Overlay */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(circle at center, #111622 0%, #05070a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+    .intro-overlay.hidden {
+      opacity: 0;
+      transform: scale(1.06);
+      pointer-events: none;
+    }
+    .vf-frame {
+      position: relative;
+      width: min(680px, 88vw);
+      height: min(380px, 56vh);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(7,9,13,0.75) 0%, rgba(7,9,13,0.88) 100%),
+        url("https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=1400&q=85") center/cover no-repeat;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+      animation: vfZoom 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes vfZoom {
+      0% { transform: scale(0.92); opacity: 0; filter: blur(8px); }
+      40% { opacity: 1; filter: blur(0px); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .vf-corner {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-color: var(--dji-orange);
+      border-style: solid;
+      animation: cornerPulse 1.4s infinite alternate;
+    }
+    @keyframes cornerPulse {
+      from { opacity: 0.55; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1.03); }
+    }
+    .vf-tl { top: 18px; left: 18px; border-width: 3px 0 0 3px; }
+    .vf-tr { top: 18px; right: 18px; border-width: 3px 3px 0 0; }
+    .vf-bl { bottom: 18px; left: 18px; border-width: 0 0 3px 3px; }
+    .vf-br { bottom: 18px; right: 18px; border-width: 0 3px 3px 0; }
+    .vf-crosshair {
+      width: 44px;
+      height: 44px;
+      border: 1.5px dashed rgba(0, 210, 255, 0.65);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      animation: spinSlow 4s linear infinite;
+    }
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .vf-hud-top {
+      position: absolute;
+      top: 22px;
+      left: 56px;
+      right: 56px;
+      display: flex;
+      justify-content: space-between;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+    }
+    .vf-title {
+      font-size: clamp(22px, 3.2vw, 34px);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .vf-sub {
+      font-size: 13px;
+      color: #cbd5e1;
+      font-family: Consolas, Monaco, "Microsoft YaHei", monospace;
+      margin-bottom: 22px;
+      text-align: center;
+    }
+    .vf-bar-wrap {
+      width: 260px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .vf-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff5500, #00d2ff);
+      animation: loadProgress 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes loadProgress {
+      0% { width: 0%; }
+      65% { width: 82%; }
+      100% { width: 100%; }
+    }
+
+    /* Top Navigation Bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .brand-mark {
+      padding: 5px 10px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #ff5500, #ff7700);
+      color: #fff;
+      font-weight: 900;
+      font-size: 12.5px;
+      letter-spacing: 0.06em;
+      box-shadow: 0 2px 12px rgba(255, 85, 0, 0.35);
+    }
+    .brand-title { font-size: 16px; font-weight: 800; }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      padding: 7px 15px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .nav-btn:hover { color: var(--text-main); }
+    .nav-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, #ff5500, #ff7700);
+      box-shadow: 0 3px 12px rgba(255, 85, 0, 0.35);
+    }
+    .top-right-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--text-main);
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--dji-orange); transform: translateY(-1px); }
+    .btn-orange {
+      background: linear-gradient(135deg, #ff5500, #ff7700);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(255, 85, 0, 0.3);
+    }
+
+    /* Multi-Page View Transitions */
+    .main-wrap {
+      max-width: 1380px;
+      margin: 24px auto 64px;
+      padding: 0 28px;
+    }
+    .page-view {
+      display: none;
+      animation: pageEnter 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .page-view.active {
+      display: block;
+    }
+    @keyframes pageEnter {
+      from { opacity: 0; transform: translateY(14px) scale(0.992); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Hero & Home Bento */
+    .hero-banner {
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      min-height: 390px;
+      display: flex;
+      align-items: flex-end;
+      padding: 38px 42px;
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow-card);
+      background-color: #0b1220;
+      background-size: cover;
+      background-position: center;
+      transition: background-image 0.5s ease;
+    }
+    .hero-content { max-width: 660px; position: relative; z-index: 2; }
+    .hero-tag-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .hud-pill {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      font-family: Consolas, Monaco, monospace;
+      background: rgba(255, 85, 0, 0.22);
+      border: 1px solid rgba(255, 85, 0, 0.55);
+      color: #ff884d;
+    }
+    .hud-pill.cyan {
+      background: rgba(0, 210, 255, 0.16);
+      border-color: rgba(0, 210, 255, 0.45);
+      color: #5ce1ff;
+    }
+    .hero-title {
+      font-size: clamp(28px, 3.6vw, 44px);
+      font-weight: 900;
+      line-height: 1.18;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .hero-desc { color: #cbd5e1; font-size: 14.5px; margin-bottom: 22px; line-height: 1.65; }
+    .hero-hud-telemetry {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      background: rgba(10, 12, 16, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hero-scene-switcher {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      display: flex;
+      gap: 8px;
+      z-index: 3;
+    }
+    .scene-chip {
+      padding: 6px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(10, 12, 16, 0.75);
+      border: 1px solid var(--border-strong);
+      color: #cbd5e1;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.15s;
+    }
+    .scene-chip.active, .scene-chip:hover {
+      background: var(--dji-orange);
+      border-color: var(--dji-orange);
+      color: #fff;
+    }
+    @media (max-width: 900px) {
+      .hero-hud-telemetry, .hero-scene-switcher { display: none; }
+      .hero-banner { padding: 24px; min-height: 300px; }
+    }
+    .rec-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      margin-right: 6px;
+      box-shadow: 0 0 8px #ef4444;
+      animation: blinkRec 1s infinite alternate;
+    }
+    @keyframes blinkRec { from { opacity: 1; } to { opacity: 0.25; } }
+
+    /* Home Portal Cards Grid */
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 22px;
+    }
+    @media (max-width: 1024px) { .portal-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .portal-grid { grid-template-columns: 1fr; } }
+    .portal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: var(--shadow-card);
+    }
+    .portal-card:hover {
+      border-color: var(--dji-orange);
+      transform: translateY(-4px);
+    }
+    .portal-num {
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--dji-orange);
+      letter-spacing: 0.08em;
+    }
+    .portal-title { font-size: 17.5px; font-weight: 800; margin: 4px 0 6px; }
+    .portal-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.5; }
+    .portal-stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--dji-cyan);
+    }
+
+    /* Shared Section & Works Grid */
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .section-title { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .section-sub { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+    .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill-btn:hover { color: var(--text-main); border-color: var(--border-strong); }
+    .pill-btn.active {
+      background: var(--dji-orange-soft);
+      border-color: var(--dji-orange);
+      color: #ff7733;
+    }
+    .works-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 20px;
+    }
+    .work-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.22s ease;
+    }
+    .work-card:hover { border-color: rgba(255, 85, 0, 0.55); transform: translateY(-4px); }
+    .work-thumb { position: relative; height: 195px; overflow: hidden; background: #0f172a; cursor: pointer; }
+    .work-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+    .work-card:hover .work-thumb img { transform: scale(1.05); }
+    .work-overlay-top {
+      position: absolute; top: 10px; left: 10px; right: 10px;
+      display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+    }
+    .cam-badge {
+      background: rgba(10, 12, 16, 0.82); backdrop-filter: blur(6px);
+      color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px;
+      border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+    }
+    .fov-badge {
+      background: rgba(255, 85, 0, 0.88); color: #fff; font-size: 11px;
+      font-weight: 700; padding: 2.5px 8px; border-radius: 6px; font-family: Consolas, Monaco, monospace;
+    }
+    .work-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .work-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .work-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.5; }
+    .spec-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: var(--bg-surface); padding: 10px; border-radius: 10px;
+      border: 1px solid var(--border); font-family: Consolas, Monaco, monospace;
+    }
+    .spec-cell { display: flex; flex-direction: column; gap: 1px; }
+    .spec-k { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+    .spec-v { font-size: 12px; font-weight: 700; color: var(--dji-cyan); }
+    .work-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; flex-wrap: wrap;
+      padding-top: 6px; margin-top: auto; font-size: 12px; color: var(--text-sub);
+    }
+    .work-footer > div { flex-shrink: 0; }
+    .copy-spec-btn {
+      padding: 5px 10px; border-radius: 6px; background: var(--bg-elevated);
+      border: 1px solid var(--border-strong); color: var(--text-main);
+      font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.14s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .copy-spec-btn:hover { background: var(--dji-orange); border-color: var(--dji-orange); color: #fff; }
+
+    /* Lab, Rigs, Planner Styles */
+    .lab-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; }
+    @media (max-width: 980px) { .lab-grid { grid-template-columns: 1fr; } }
+    .panel-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-card);
+    }
+    .control-group { margin-bottom: 16px; }
+    .control-label { font-size: 12.5px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; display: block; }
+    .input, .select {
+      width: 100%; height: 38px; padding: 0 12px; border-radius: 9px;
+      border: 1px solid var(--border-strong); background: var(--bg-surface);
+      color: var(--text-main); font-size: 13px; font-family: inherit; outline: none;
+    }
+    .input:focus, .select:focus { border-color: var(--dji-orange); }
+    .hud-screen {
+      background: #080b10; border: 1px solid rgba(0, 210, 255, 0.3);
+      border-radius: 14px; padding: 18px; margin-top: 16px;
+      font-family: Consolas, Monaco, "Microsoft YaHei", monospace;
+    }
+    .hud-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+    .hud-box {
+      background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .hud-box-label { font-size: 11px; color: var(--text-muted); }
+    .hud-box-val { font-size: 14.5px; font-weight: 800; color: var(--dji-cyan); margin-top: 2px; }
+
+    .lut-compare-box {
+      position: relative; height: 235px; border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--border-strong); margin-top: 14px; user-select: none;
+      background: radial-gradient(circle at 50% 45%, #1e293b, #0b0f17 72%);
+    }
+    .lut-img-graded {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: center;
+      filter: saturate(1.28) contrast(1.12);
+    }
+    .lut-img-dlog-wrap {
+      position: absolute; inset: 0; width: 100%;
+      overflow: hidden; pointer-events: none;
+      clip-path: inset(0 50% 0 0);
+      will-change: clip-path;
+    }
+    .lut-img-dlog {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: center;
+      filter: saturate(0.38) contrast(0.75) brightness(1.08);
+    }
+    .lut-divider {
+      position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
+      transform: translateX(-1px); pointer-events: none;
+      background: var(--dji-orange);
+      box-shadow: 0 0 12px rgba(255, 85, 0, 0.7);
+    }
+    .lut-tag {
+      position: absolute; bottom: 10px; padding: 3px 9px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; background: rgba(10, 12, 16, 0.82); color: #fff;
+    }
+
+    /* ===== Live Viewfinder Preview ===== */
+    .vfp-card { margin-bottom: 22px; }
+    .vfp-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .vfp-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .vfp-head-tools {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      flex-basis: 100%; padding-top: 2px;
+    }
+    .vfp-source-badge {
+      display: inline-flex; align-items: center;
+      padding: 4px 9px; border-radius: 99px;
+      font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+      background: var(--dji-cyan-soft); border: 1px solid rgba(0, 210, 255, 0.35);
+      color: #5ce1ff; white-space: nowrap;
+    }
+    .vfp-source-badge.manual {
+      background: var(--dji-orange-soft); border-color: rgba(255, 85, 0, 0.42);
+      color: #ff9a5c;
+    }
+    .vfp-grid { display: grid; grid-template-columns: 1.65fr 1fr; gap: 20px; }
+    @media (max-width: 980px) { .vfp-grid { grid-template-columns: 1fr; } }
+
+    .vfp-stage {
+      position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+      background: #000; border: 1px solid var(--border-strong);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
+    }
+    .vfp-img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; transition: filter 0.3s ease;
+    }
+    .vfp-ghost {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; pointer-events: none; opacity: 0;
+      transition: opacity 0.3s ease, filter 0.3s ease, transform 0.3s ease;
+    }
+    .vfp-exposure {
+      position: absolute; inset: 0; pointer-events: none;
+      transition: background 0.3s ease;
+    }
+    .vfp-tint {
+      position: absolute; inset: 0; pointer-events: none;
+      mix-blend-mode: soft-light; transition: background 0.3s ease;
+    }
+    .vfp-wb {
+      position: absolute; inset: 0; pointer-events: none;
+      mix-blend-mode: soft-light; transition: background 0.25s ease;
+    }
+    .vfp-vignette {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.52) 100%);
+    }
+    .vfp-gridlines {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0.22;
+      background-image:
+        linear-gradient(to right, transparent calc(33.33% - 1px), rgba(255,255,255,0.55) 33.33%, transparent calc(33.33% + 1px), transparent calc(66.66% - 1px), rgba(255,255,255,0.55) 66.66%, transparent calc(66.66% + 1px)),
+        linear-gradient(to bottom, transparent calc(33.33% - 1px), rgba(255,255,255,0.55) 33.33%, transparent calc(33.33% + 1px), transparent calc(66.66% - 1px), rgba(255,255,255,0.55) 66.66%, transparent calc(66.66% + 1px));
+    }
+    .vfp-focus {
+      position: absolute; top: 50%; left: 50%; width: 78px; height: 78px;
+      transform: translate(-50%, -50%); border: 1px dashed rgba(0, 210, 255, 0.6);
+      pointer-events: none;
+    }
+    .vfp-focus::before, .vfp-focus::after {
+      content: ""; position: absolute; width: 16px; height: 16px;
+      border: 2px solid var(--dji-cyan);
+    }
+    .vfp-focus::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+    .vfp-focus::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+    .vfp-hud {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: space-between; padding: 14px 16px; pointer-events: none;
+      font-family: Consolas, Monaco, "Microsoft YaHei", monospace; color: #fff;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
+    .vfp-hud-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .vfp-hud-chip {
+      background: rgba(8, 11, 16, 0.62); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 5px; padding: 2px 7px; font-size: 11px; letter-spacing: 0.03em;
+    }
+    .vfp-hud-big { font-size: 21px; font-weight: 800; line-height: 1.1; }
+    .vfp-hud-sub { font-size: 10.5px; color: #cbd5e1; letter-spacing: 0.04em; margin-top: 1px; }
+    .vfp-hud-right {
+      text-align: right; display: flex; flex-direction: column; gap: 2px;
+      font-size: 11.5px; line-height: 1.45;
+    }
+    .vfp-hud-right span { white-space: nowrap; }
+    .vfp-hud-right .vfp-nd { color: #ffb27a; font-weight: 700; }
+    .vfp-expo-pill {
+      position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+      padding: 3px 12px; border-radius: 99px; font-size: 11.5px; font-weight: 700;
+      font-family: Consolas, Monaco, "Microsoft YaHei", monospace;
+      background: rgba(16, 185, 129, 0.82); color: #fff;
+      pointer-events: none; transition: all 0.2s ease;
+    }
+    .vfp-expo-pill.warn { background: rgba(245, 158, 11, 0.9); }
+    .vfp-expo-pill.bad { background: rgba(244, 63, 94, 0.9); }
+
+    .vfp-side { display: flex; flex-direction: column; gap: 14px; }
+    .vfp-label {
+      font-size: 12px; font-weight: 700; color: var(--text-sub);
+      margin-bottom: 7px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .vfp-nd-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .vfp-nd-btn {
+      padding: 8px 2px; border-radius: 9px; border: 1px solid var(--border-strong);
+      background: var(--bg-surface); color: var(--text-sub); font-size: 12px;
+      font-weight: 700; cursor: pointer; text-align: center;
+      transition: all 0.15s ease; font-family: Consolas, Monaco, monospace;
+    }
+    .vfp-nd-btn small {
+      display: block; font-size: 9.5px; font-weight: 500;
+      color: var(--text-muted); margin-top: 2px;
+    }
+    .vfp-nd-btn:hover { border-color: var(--dji-orange); color: var(--text-main); }
+    .vfp-nd-btn.active {
+      background: var(--dji-orange-soft); border-color: var(--dji-orange);
+      color: #ff884d; box-shadow: 0 2px 10px rgba(255, 85, 0, 0.22);
+    }
+    .vfp-nd-btn.active small { color: #ffb27a; }
+    .vfp-toggle-row { display: flex; gap: 7px; flex-wrap: wrap; }
+    .vfp-toggle {
+      flex: 1; min-width: 92px; padding: 7px 6px; border-radius: 9px;
+      border: 1px solid var(--border-strong); background: var(--bg-surface);
+      color: var(--text-sub); font-size: 11.5px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+    }
+    .vfp-toggle:hover { border-color: var(--border-hover); color: var(--text-main); }
+    .vfp-toggle.on {
+      background: var(--dji-cyan-soft); border-color: rgba(0, 210, 255, 0.55);
+      color: #5ce1ff;
+    }
+    .vfp-range { width: 100%; accent-color: #ff5500; cursor: pointer; }
+    .vfp-readout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .vfp-readout-item {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 9px; padding: 7px 10px;
+    }
+    .vfp-readout-k { font-size: 10px; color: var(--text-muted); }
+    .vfp-readout-v {
+      font-size: 13.5px; font-weight: 800; color: var(--dji-cyan);
+      font-family: Consolas, Monaco, "Microsoft YaHei", monospace; margin-top: 1px;
+    }
+    .vfp-warn {
+      border-radius: 9px; padding: 8px 10px; font-size: 11.5px; line-height: 1.5;
+      background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7; transition: all 0.2s ease;
+    }
+    .vfp-warn.warn {
+      background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;
+    }
+    .vfp-warn.bad {
+      background: rgba(244, 63, 94, 0.12); border-color: rgba(244, 63, 94, 0.42); color: #fda4af;
+    }
+
+    /* Advanced control console */
+    .vfp-stage-col { min-width: 0; }
+    .vfp-media {
+      position: absolute; inset: 0; transform-origin: center center;
+      transform: scale(var(--vfp-zoom, 1));
+      transition: transform 0.25s ease;
+      background: radial-gradient(circle at 50% 42%, #1e293b, #0b0f17 72%);
+    }
+    .vfp-media.shake-off { animation: vfpShakeOff 0.55s infinite; }
+    .vfp-media.shake-mild { animation: vfpShakeMild 0.75s infinite; }
+    @keyframes vfpShakeOff {
+      0%, 100% { transform: scale(var(--vfp-zoom, 1)) translate(0, 0) rotate(0deg); }
+      15% { transform: scale(var(--vfp-zoom, 1)) translate(-7px, 4px) rotate(-0.9deg); }
+      30% { transform: scale(var(--vfp-zoom, 1)) translate(5px, -5px) rotate(0.7deg); }
+      45% { transform: scale(var(--vfp-zoom, 1)) translate(-4px, 6px) rotate(-0.5deg); }
+      60% { transform: scale(var(--vfp-zoom, 1)) translate(6px, 3px) rotate(0.8deg); }
+      75% { transform: scale(var(--vfp-zoom, 1)) translate(-3px, -4px) rotate(-0.4deg); }
+    }
+    @keyframes vfpShakeMild {
+      0%, 100% { transform: scale(var(--vfp-zoom, 1)) translate(0, 0) rotate(0deg); }
+      25% { transform: scale(var(--vfp-zoom, 1)) translate(-2px, 1.5px) rotate(-0.22deg); }
+      50% { transform: scale(var(--vfp-zoom, 1)) translate(1.5px, -2px) rotate(0.18deg); }
+      75% { transform: scale(var(--vfp-zoom, 1)) translate(-1px, 1px) rotate(-0.12deg); }
+    }
+    .vfp-noise {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0;
+      mix-blend-mode: overlay; transition: opacity 0.25s ease;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+    }
+    .vfp-stage.ratio-4-3 { aspect-ratio: 4 / 3; }
+    .vfp-stage.ratio-9-16 { aspect-ratio: 9 / 16; max-width: 290px; margin: 0 auto; }
+    .vfp-stage.ratio-9-16 .vfp-hud { padding: 10px 11px; }
+    .vfp-stage.ratio-9-16 .vfp-hud-big { font-size: 19px; }
+    .vfp-stage.ratio-9-16 .vfp-hud-right {
+      display: grid; grid-template-columns: auto auto; gap: 1px 8px;
+      align-items: baseline; justify-items: end; font-size: 9px;
+    }
+    .vfp-stage.ratio-9-16 .vfp-hud-right span { font-size: 9px; }
+
+    .vfp-meter-wrap {
+      margin-top: 10px; background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 7px 12px 6px;
+    }
+    .vfp-meter-scale {
+      display: flex; justify-content: space-between; font-family: Consolas, Monaco, monospace;
+      font-size: 9.5px; color: var(--text-muted);
+    }
+    .vfp-meter-track {
+      position: relative; height: 6px; margin: 5px 0 3px; border-radius: 99px;
+      background: linear-gradient(90deg, #1d4ed8 0%, #334155 34%, #334155 66%, #b45309 100%);
+    }
+    .vfp-meter-center { position: absolute; left: 50%; top: -2px; width: 1px; height: 10px; background: #94a3b8; }
+    .vfp-meter-needle {
+      position: absolute; top: -4px; left: 50%; width: 3px; height: 14px;
+      background: #f8fafc; border-radius: 2px; transform: translateX(-50%);
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+      transition: left 0.2s ease, background 0.2s ease;
+    }
+    .vfp-meter-caption {
+      display: flex; justify-content: space-between; font-size: 10.5px;
+      color: var(--text-sub); font-family: Consolas, Monaco, "Microsoft YaHei", monospace;
+    }
+
+    .vfp-side { padding-right: 2px; }
+    .vfp-group { border-top: 1px solid var(--border); padding-top: 9px; margin-top: 10px; }
+    .vfp-group-title {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+      color: var(--dji-orange); margin-bottom: 6px; text-transform: uppercase;
+    }
+    .vfp-ctl-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11.5px; color: var(--text-sub); margin: 7px 0 3px;
+    }
+    .vfp-ctl-row b { color: var(--dji-cyan); font-family: Consolas, Monaco, monospace; font-size: 11.5px; }
+    .vfp-select {
+      width: 100%; height: 31px; padding: 0 8px; border-radius: 8px;
+      border: 1px solid var(--border-strong); background: var(--bg-surface);
+      color: var(--text-main); font-size: 12px; font-family: inherit; outline: none;
+    }
+    .vfp-select:focus { border-color: var(--dji-orange); }
+    .vfp-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .vfp-seg button {
+      padding: 6px 0; border-radius: 7px; border: 1px solid var(--border-strong);
+      background: var(--bg-surface); color: var(--text-sub);
+      font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    }
+    .vfp-seg button:hover { color: var(--text-main); border-color: var(--border-hover); }
+    .vfp-seg button.on {
+      background: var(--dji-orange-soft); border-color: var(--dji-orange); color: #ff884d;
+    }
+    .vfp-quick {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin-top: 8px; padding: 8px 10px; border-radius: 9px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+    }
+    .vfp-quick span { font-size: 11px; color: var(--text-muted); }
+    .vfp-quick button {
+      padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border-strong);
+      background: var(--bg-elevated); color: var(--text-sub);
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .vfp-quick button:hover { border-color: var(--dji-orange); color: var(--text-main); }
+    .vfp-tip {
+      margin-top: 8px; padding: 9px 12px; border-radius: 9px;
+      background: rgba(0, 210, 255, 0.06); border: 1px solid rgba(0, 210, 255, 0.18);
+      font-size: 11.5px; color: var(--text-sub); line-height: 1.6;
+    }
+    .vfp-tip b { color: #5ce1ff; }
+    .vfp-advice {
+      margin-top: 8px; padding: 10px 12px; border-radius: 9px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--dji-orange);
+      font-size: 11.5px; color: var(--text-sub); line-height: 1.65;
+    }
+    .vfp-advice b { color: #ff884d; }
+    .vfp-filter-card {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: 9px;
+      padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.15s ease;
+    }
+    .vfp-filter-card:hover { border-color: var(--dji-orange); transform: translateY(-1px); }
+    .vfp-filter-card.active {
+      border-color: var(--dji-orange); background: var(--dji-orange-soft);
+      box-shadow: 0 2px 10px rgba(255, 85, 0, 0.2);
+    }
+    .vfp-filter-card b { font-size: 12px; color: #ff884d; font-family: Consolas, Monaco, monospace; }
+    .vfp-filter-card span { display: block; font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .vfp-nd-btn:focus-visible, .vfp-filter-card:focus-visible {
+      outline: 2px solid var(--dji-cyan); outline-offset: 2px;
+    }
+
+    .planner-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 22px; }
+    @media (max-width: 980px) { .planner-grid { grid-template-columns: 1fr; } }
+    .shot-item {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; padding: 13px 15px; border-radius: 12px; background: var(--bg-surface);
+      border: 1px solid var(--border); margin-bottom: 10px; transition: all 0.15s;
+    }
+    .shot-item:hover { border-color: var(--border-strong); }
+    .shot-item.done { opacity: 0.58; }
+    .shot-item.done .shot-title { text-decoration: line-through; }
+    .shot-meta-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+    .shot-tag {
+      font-size: 11px; padding: 2px 8px; border-radius: 5px;
+      background: var(--bg-elevated); color: var(--text-sub);
+      font-family: Consolas, Monaco, "Microsoft YaHei", monospace;
+    }
+    .shot-tag.orange { background: var(--dji-orange-soft); color: #ff7733; }
+    .shot-tag.cyan { background: var(--dji-cyan-soft); color: #38bdf8; }
+    .gear-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .gear-item {
+      display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+      border-radius: 9px; background: var(--bg-surface); border: 1px solid var(--border);
+      font-size: 12.5px; cursor: pointer; user-select: none;
+    }
+    .gear-item.checked { border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.08); }
+
+    .rigs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 20px;
+    }
+    @media (max-width: 600px) { .rigs-grid { grid-template-columns: 1fr; } }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px); z-index: 500; display: none;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--bg-card); border: 1px solid var(--border-strong);
+      border-radius: 18px; width: 100%; max-width: 560px; padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: #ff5500; color: #fff;
+      padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700;
+      box-shadow: 0 10px 24px rgba(255, 85, 0, 0.35); opacity: 0;
+      transform: translateY(10px); pointer-events: none; transition: all 0.22s ease; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      .topbar, .intro-overlay, .toast, .modal-backdrop, .vfp-quick,
+      .vfp-head-tools, .top-right-tools, button, input[type="range"] {
+        display: none !important;
+      }
+      body {
+        background: #fff !important; color: #111 !important;
+        background-image: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .main-wrap { max-width: none !important; padding: 0 !important; }
+      .panel-card, .work-card, .shot-item, .gear-item, .portal-card,
+      .hud-screen, .spec-grid, .hero-banner {
+        background: #fff !important; color: #111 !important;
+        border-color: #cbd5e1 !important; box-shadow: none !important;
+      }
+      .work-card, .shot-item, .gear-item, .spec-grid { break-inside: avoid; }
+      .section-header { break-after: avoid; }
+      .hero-banner { background-image: none !important; }
+      .panel-card *, .work-card *, .shot-item *, .gear-item *, .portal-card *,
+      .hud-screen *, .hero-banner * {
+        color: #1f2937 !important; text-shadow: none !important;
+      }
+      .section-title, .work-title, .portal-title, .brand-title, .shot-title,
+      .hud-box-label, .spec-k, .vfp-readout-k { color: #0f172a !important; }
+      .section-sub, .work-desc, .hero-desc, .hudTip, #calcLinkNote { color: #475569 !important; }
+      .spec-v, .hud-box-val, .vfp-readout-v, .shot-tag.cyan { color: #0f766e !important; }
+      .shot-tag, .hud-pill, .fov-badge, .cam-badge, .vfp-expo-pill {
+        background: #eef2f7 !important; color: #334155 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      .shot-tag.orange { background: #fff1e6 !important; color: #9a3412 !important; }
+      .hero-hud-telemetry {
+        background: #fff !important; color: #334155 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      .vfp-warn { background: #f8fafc !important; color: #334155 !important; border-color: #cbd5e1 !important; }
+      .vfp-warn.warn { color: #92400e !important; }
+      .vfp-warn.bad { color: #9f1239 !important; }
+      .vfp-hud { color: #ffffff !important; text-shadow: 0 1px 4px rgba(0,0,0,0.9) !important; }
+      .vfp-hud-chip { background: #ffffff !important; color: #111827 !important; border-color: #cbd5e1 !important; }
+      .vfp-hud-right .vfp-nd { color: #9a3412 !important; }
+      .vfp-hud-row:last-child > div {
+        background: rgba(0, 0, 0, 0.55) !important;
+        padding: 5px 9px; border-radius: 7px;
+      }
+      .vfp-readout-item { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+      .vfp-readout-k { color: #64748b !important; }
+      .vfp-readout-v { color: #0f766e !important; }
+      .vfp-advice, .vfp-tip { background: #f8fafc !important; color: #334155 !important; border-color: #cbd5e1 !important; }
+      .vfp-nd-btn { background: #f8fafc !important; color: #334155 !important; border-color: #cbd5e1 !important; }
+      .vfp-nd-btn small { color: #64748b !important; }
+      .vfp-nd-btn.active { background: #fff1e6 !important; color: #9a3412 !important; border-color: #fdba74 !important; }
+      .vfp-nd-btn.active small { color: #9a3412 !important; }
+      .vfp-noise { display: none !important; }
+      select, input[type="text"] {
+        background: #fff !important; color: #111827 !important;
+        border-color: #cbd5e1 !important;
+      }
+      .works-grid, .lab-grid, .planner-grid, .rigs-grid, .portal-grid {
+        grid-template-columns: 1fr 1fr !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CAMERA HUD BOOT INTRO ANIMATION -->
+  <div class="intro-overlay" id="bootIntroOverlay">
+    <div class="vf-frame">
+      <div class="vf-corner vf-tl"></div>
+      <div class="vf-corner vf-tr"></div>
+      <div class="vf-corner vf-bl"></div>
+      <div class="vf-corner vf-br"></div>
+      <div class="vf-hud-top">
+        <span><span class="rec-dot"></span>OSMO ACTION 5 PRO // 1/1.3" CMOS</span>
+        <span>4K 120FPS · 10-BIT D-LOG M</span>
+      </div>
+      <div class="vf-crosshair">
+        <div style="width:6px;height:6px;border-radius:50%;background:#ff5500;"></div>
+      </div>
+      <div class="vf-title">DJI ACTION LAB</div>
+      <div class="vf-sub" id="bootStatusText">INITIALIZING ROCKSTEADY 3.0+ & COLOR SENSOR...</div>
+      <div class="vf-bar-wrap">
+        <div class="vf-bar-fill"></div>
+      </div>
+      <button class="btn btn-orange" onclick="dismissIntro()">⚡ 进入摄影灵感与参数工作站</button>
+    </div>
+  </div>
+
+  <!-- STICKY MULTI-PAGE NAVBAR -->
+  <header class="topbar">
+    <div class="brand" onclick="switchPage('home', document.querySelectorAll('.nav-btn')[0])">
+      <span class="brand-mark">DJI ACTION LAB</span>
+      <span class="brand-title">Action 5 Pro 人像·自然风光·创意参数站</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="switchPage('home', this)">🏠 视觉首页</button>
+      <button class="nav-btn" onclick="switchPage('works', this)">🎬 灵感作品库</button>
+      <button class="nav-btn" onclick="switchPage('lab', this)">⚙️ 参数实验室</button>
+      <button class="nav-btn" onclick="switchPage('rigs', this)">💡 人像与风光玩法图鉴</button>
+      <button class="nav-btn" onclick="switchPage('plan', this)">📅 外拍分镜计划</button>
+    </div>
+    <div class="top-right-tools">
+      <button class="btn" onclick="replayIntro()" title="重播取景器开机动画">🎥 开机动画</button>
+      <button class="btn" onclick="openAddWorkModal()">➕ 录入新作品</button>
+      <button class="btn btn-orange" onclick="exportShootingPlanCSV()">📤 导出通告单</button>
+    </div>
+  </header>
+
+  <!-- MULTI-PAGE CONTAINER -->
+  <main class="main-wrap">
+
+    <!-- PAGE 1: HOME PORTAL -->
+    <div id="page-home" class="page-view active">
+      <div class="hero-banner" id="heroBannerBox" style="background-image: linear-gradient(90deg, rgba(7,9,13,0.92) 0%, rgba(7,9,13,0.65) 52%, rgba(7,9,13,0.2) 100%), url('https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=1400&q=85');">
+        <div class="hero-hud-telemetry">
+          <div><span class="rec-dot"></span>REC  00:18:42:09</div>
+          <div id="hudCamLine">CAM : DJI Osmo Action 5 Pro</div>
+          <div id="hudResLine">RES : 4K (4:3) 120fps | 10-bit D-Log M</div>
+          <div id="hudEisLine">EIS : RockSteady 3.0+ | FOV 155°</div>
+          <div id="hudExpLine">EXP : 1/240s | ISO 100-800 | ND16</div>
+        </div>
+        <div class="hero-content">
+          <div class="hero-tag-row">
+            <span class="hud-pill" id="heroSceneBadge">🌊 玻璃管浪慢动作实拍</span>
+            <span class="hud-pill cyan">13.5 档高动态范围</span>
+            <span class="hud-pill">10-Bit D-Log M</span>
+          </div>
+          <h1 class="hero-title" id="heroMainTitle">把每一次极限瞬间，<br/>定格成电影级第一视角</h1>
+          <p class="hero-desc" id="heroMainDesc">
+            专为 DJI Osmo Action 运动相机创作者打造的多页面工作站。汇集旅拍人像、自然风光与创意运动实拍参数、180° 快门与 ND 滤镜智能推导器、16 大进阶玩法图鉴以及可导出的外拍分镜计划表。
+          </p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-orange" onclick="switchPage('works', document.querySelectorAll('.nav-btn')[1])">🎬 浏览全部灵感作品</button>
+            <button class="btn" onclick="switchPage('lab', document.querySelectorAll('.nav-btn')[2])">⚙️ 打开智能参数推导器</button>
+            <button class="btn" onclick="switchPage('plan', document.querySelectorAll('.nav-btn')[4])">📅 制定外拍分镜计划</button>
+          </div>
+        </div>
+        <div class="hero-scene-switcher">
+          <span class="scene-chip active" onclick="setHeroScene(0, this)">🏔️ 山川自然风光</span>
+          <span class="scene-chip" onclick="setHeroScene(1, this)">👩 黄金逆光人像</span>
+          <span class="scene-chip" onclick="setHeroScene(2, this)">🌊 溪流慢门与冲浪</span>
+          <span class="scene-chip" onclick="setHeroScene(3, this)">🌃 蓝调夜景人像</span>
+        </div>
+      </div>
+
+      <!-- 4 Portal Entry Cards -->
+      <div class="portal-grid">
+        <div class="portal-card" onclick="switchPage('works', document.querySelectorAll('.nav-btn')[1])">
+          <div>
+            <div class="portal-num">PAGE 01 // GALLERY</div>
+            <div class="portal-title">🎬 灵感作品与参数拆解</div>
+            <div class="portal-desc">涵盖冲浪、山地速降、单板粉雪、城市夜骑、深潜、滑板与星空延时实拍样片及机位参数。</div>
+          </div>
+          <div class="portal-stat">
+            <span id="homeStatWorks">已收录 8 组实拍方案</span>
+            <span>进入页面 →</span>
+          </div>
+        </div>
+
+        <div class="portal-card" onclick="switchPage('lab', document.querySelectorAll('.nav-btn')[2])">
+          <div>
+            <div class="portal-num">PAGE 02 // PARAM LAB</div>
+            <div class="portal-title">⚙️ 参数推导与 D-Log M</div>
+            <div class="portal-desc">根据运动剧烈度与环境光线自动计算快门、ISO、防抖模式与 ND 减光镜，支持 LUT 调色拖动对比。</div>
+          </div>
+          <div class="portal-stat">
+            <span>支持 Action 5 Pro / 4</span>
+            <span>进入页面 →</span>
+          </div>
+        </div>
+
+        <div class="portal-card" onclick="switchPage('rigs', document.querySelectorAll('.nav-btn')[3])">
+          <div>
+            <div class="portal-num">PAGE 03 // MOUNT & RIGS</div>
+            <div class="portal-title">🦯 机位安装与收音图鉴</div>
+            <div class="portal-desc">详解头盔下巴、磁吸胸带倒装、咬嘴、1.5m 延长杆与车架吸盘的黄金仰角及 DJI Mic 2 防风收音方案。</div>
+          </div>
+          <div class="portal-stat">
+            <span>16 大进阶玩法</span>
+            <span>进入页面 →</span>
+          </div>
+        </div>
+
+        <div class="portal-card" onclick="switchPage('plan', document.querySelectorAll('.nav-btn')[4])">
+          <div>
+            <div class="portal-num">PAGE 04 // SHOT PLANNER</div>
+            <div class="portal-title">📅 外拍分镜与器材核查</div>
+            <div class="portal-desc">管理每次外拍的分镜脚本、起止时间段、机位支架与器材核对清单，支持一键导出 CSV 通告单。</div>
+          </div>
+          <div class="portal-stat">
+            <span id="homeStatPlans">待拍分镜 2 项</span>
+            <span>进入页面 →</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Works Preview on Home -->
+      <div style="margin-top:34px;">
+        <div class="section-header">
+          <div>
+            <div class="section-title">🔥 本周精选实拍灵感方案</div>
+            <div class="section-sub">点击任一作品可查看机位拆解、复制整套参数或一键转入你的外拍分镜计划</div>
+          </div>
+          <button class="btn" onclick="switchPage('works', document.querySelectorAll('.nav-btn')[1])">查看全部作品库 →</button>
+        </div>
+        <div class="works-grid" id="homeFeaturedGrid"></div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: INSPIRATION GALLERY -->
+    <div id="page-works" class="page-view">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🎬 DJI Action 摄影灵感作品与参数拆解</div>
+          <div class="section-sub">涵盖旅拍人像、自然风光、延时创意与水上运动等实拍样片、机位固定方式、运镜技巧与可直接复用的曝光参数</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <input type="text" id="workSearchInput" class="input" style="width:220px; height:34px; border-radius:99px;" placeholder="🔍 搜索人像、雪山、慢门、延时..." oninput="renderWorks()" />
+          <div class="filter-pills" id="categoryFilterBar"></div>
+        </div>
+      </div>
+      <div class="works-grid" id="worksGrid"></div>
+    </div>
+
+    <!-- PAGE 3: PARAMETER LAB & D-LOG M -->
+    <div id="page-lab" class="page-view">
+      <div class="section-header">
+        <div>
+          <div class="section-title">⚙️ DJI Action 场景参数实验室 & ND 滤镜计算器</div>
+          <div class="section-sub">根据运动剧烈程度、环境光线与动态模糊偏好，自动生成最佳快门、ISO、防抖与 ND 减光镜组合</div>
+        </div>
+      </div>
+
+      <!-- LIVE VIEWFINDER PREVIEW -->
+      <div class="panel-card vfp-card">
+        <div class="vfp-head">
+          <div>
+            <div class="section-title" style="font-size:18px;">🎥 实时取景器预览 · Live Viewfinder</div>
+            <div class="section-sub">切换参数、ND 档位、快门或 LUT，画面会实时模拟曝光、运动拖影、减光与色彩变化</div>
+          </div>
+          <div class="vfp-badges">
+            <span class="hud-pill" id="vfpBadgeMode">4K 60fps</span>
+            <span class="hud-pill cyan" id="vfpBadgeColor">10-bit D-Log M</span>
+            <span class="hud-pill" id="vfpBadgeNd">ND8</span>
+          </div>
+          <div class="vfp-head-tools">
+            <span class="vfp-source-badge" id="vfpSourceBadge">预设联动</span>
+            <button class="copy-spec-btn" onclick="applyCalcToPreview()">⬇️ 应用推荐到取景器</button>
+            <button class="copy-spec-btn" onclick="applyPreviewToPlanner()">📅 取景器参数转入分镜</button>
+          </div>
+        </div>
+
+        <div class="vfp-grid">
+          <div class="vfp-stage-col">
+          <div class="vfp-stage ratio-16-9" id="vfpStage">
+            <div class="vfp-media" id="vfpMedia">
+              <img class="vfp-img" id="vfpImg" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=85" alt="取景器预览画面" />
+              <img class="vfp-ghost" id="vfpGhostA" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=85" alt="" />
+              <img class="vfp-ghost" id="vfpGhostB" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=85" alt="" />
+            </div>
+            <div class="vfp-noise" id="vfpNoise"></div>
+            <div class="vfp-tint" id="vfpTint"></div>
+            <div class="vfp-wb" id="vfpWbTint"></div>
+            <div class="vfp-exposure" id="vfpExposure"></div>
+            <div class="vfp-vignette"></div>
+            <div class="vfp-gridlines" id="vfpGrid"></div>
+            <div class="vfp-focus"></div>
+            <div class="vfp-expo-pill" id="vfpExpoPill">曝光正常</div>
+            <div class="vfp-hud">
+              <div class="vfp-hud-row">
+                <span class="vfp-hud-chip"><span class="rec-dot"></span>REC 00:12:48:06</span>
+                <span class="vfp-hud-chip" id="vfpHudModel">ACTION 5 PRO</span>
+              </div>
+              <div class="vfp-hud-row" style="align-items:flex-end;">
+                <div>
+                  <div class="vfp-hud-big" id="vfpHudRes">4K 60</div>
+                  <div class="vfp-hud-sub" id="vfpHudMode">16:9 · 60fps</div>
+                  <div class="vfp-hud-sub" id="vfpHudEis">ROCKSTEADY+</div>
+                </div>
+                <div class="vfp-hud-right">
+                  <span id="vfpHudEv">EV +0.0</span>
+                  <span id="vfpHudShutter">1/125</span>
+                  <span id="vfpHudIso">ISO 100-800</span>
+                  <span class="vfp-nd" id="vfpHudNd">ND8 · 3档</span>
+                  <span id="vfpHudWb">WB 5600K</span>
+                  <span id="vfpHudFov">FOV WIDE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="vfp-meter-wrap">
+            <div class="vfp-meter-scale">
+              <span>-3</span><span>-2</span><span>-1</span><span>0</span><span>+1</span><span>+2</span><span>+3</span>
+            </div>
+            <div class="vfp-meter-track">
+              <div class="vfp-meter-center"></div>
+              <div class="vfp-meter-needle" id="vfpMeterNeedle"></div>
+            </div>
+            <div class="vfp-meter-caption">
+              <span id="vfpEvText">EV 0.0</span>
+              <span id="vfpEvState">曝光准确</span>
+            </div>
+          </div>
+          <div class="vfp-quick">
+            <span>快速曝光演示</span>
+            <button onclick="quickPreviewEv(-1)">欠曝 -1 EV</button>
+            <button onclick="quickPreviewEv(0)">标准曝光</button>
+            <button onclick="quickPreviewEv(1)">过曝 +1 EV</button>
+            <button onclick="quickPreviewEv('reset')">重置参数</button>
+          </div>
+          <div class="vfp-tip">
+            <b>曝光三角：</b>ISO ↑ 更亮但噪点增加 · 快门越慢进光越多但拖影更强 · ND 越强画面越暗、允许更慢的快门。
+          </div>
+          <div class="vfp-advice" id="vfpAdvice">
+            <b>人像要点：</b>选择标准去畸变 + 1.5–2x 变焦，人物居中；EV 降 -0.3 保留高光。
+          </div>
+          <div class="vfp-readout" style="grid-template-columns: 1fr 1fr; margin-top: 8px;">
+            <div class="vfp-readout-item">
+              <div class="vfp-readout-k">进光量</div>
+              <div class="vfp-readout-v" id="vfpLightPct">13%</div>
+            </div>
+            <div class="vfp-readout-item">
+              <div class="vfp-readout-k">运动模糊</div>
+              <div class="vfp-readout-v" id="vfpBlurPct">中等</div>
+            </div>
+            <div class="vfp-readout-item">
+              <div class="vfp-readout-k">色彩风格</div>
+              <div class="vfp-readout-v" id="vfpColorNote" style="font-size:12px;">D-Log M + LUT</div>
+            </div>
+            <div class="vfp-readout-item">
+              <div class="vfp-readout-k">当前场景</div>
+              <div class="vfp-readout-v" id="vfpSceneNote" style="font-size:12px;">旅拍人像</div>
+            </div>
+          </div>
+          </div>
+
+          <div class="vfp-side">
+            <div>
+              <div class="vfp-label">
+                <span>ND 减光镜档位</span>
+                <span id="vfpNdHint" style="color:#ff884d;font-weight:700;">推荐 ND8</span>
+              </div>
+              <div class="vfp-nd-row">
+                <div class="vfp-nd-btn" data-nd="0" onclick="setPreviewND(0)">无<small>0 档</small></div>
+                <div class="vfp-nd-btn active" data-nd="3" onclick="setPreviewND(3)">ND8<small>3 档</small></div>
+                <div class="vfp-nd-btn" data-nd="4" onclick="setPreviewND(4)">ND16<small>4 档</small></div>
+                <div class="vfp-nd-btn" data-nd="5" onclick="setPreviewND(5)">ND32<small>5 档</small></div>
+                <div class="vfp-nd-btn" data-nd="6" onclick="setPreviewND(6)">ND64<small>6 档</small></div>
+              </div>
+              <div class="vfp-toggle-row" style="margin-top:8px;">
+                <button class="vfp-toggle" id="vfpCplToggle" onclick="togglePreviewCpl()">CPL 偏振</button>
+                <button class="vfp-toggle on" id="vfpLutToggle" onclick="togglePreviewLut()">Rec.709 LUT</button>
+                <button class="vfp-toggle on" id="vfpMotionToggle" onclick="togglePreviewMotion()">快门拖影</button>
+              </div>
+            </div>
+
+            <div class="vfp-group">
+              <div class="vfp-group-title">曝光 Exposure</div>
+              <div class="vfp-ctl-row"><span>曝光补偿 EV</span><b id="vfpEvVal">0.0</b></div>
+              <input type="range" id="vfpEvRange" class="vfp-range" min="-2" max="2" step="0.3" value="0" oninput="onPreviewEv(this.value)" />
+              <div class="vfp-ctl-row"><span>ISO 感光度</span><b id="vfpIsoVal">100</b></div>
+              <input type="range" id="vfpIsoRange" class="vfp-range" min="0" max="7" step="1" value="0" oninput="onPreviewIso(this.value)" />
+              <div class="vfp-ctl-row"><span>快门 Shutter</span><b id="vfpShutterText">1/125s</b></div>
+              <input type="range" id="vfpShutterRange" class="vfp-range" min="0" max="11" step="1" value="5" oninput="onPreviewShutterInput(this.value)" />
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);font-family:Consolas,monospace;margin-top:2px;">
+                <span>1/4000</span><span>1/250</span><span>1/60</span><span>1/8</span><span>1/2</span>
+              </div>
+            </div>
+
+            <div class="vfp-group">
+              <div class="vfp-group-title">光学 Optics</div>
+              <div class="vfp-ctl-row"><span>视场角 / 焦段</span><b id="vfpFovText">广角</b></div>
+              <select id="vfpFovSelect" class="vfp-select" onchange="onPreviewFov(this.value)">
+                <option value="ultrawide">155° 超广角</option>
+                <option value="wide" selected>广角 Wide</option>
+                <option value="standard">标准（去畸变）</option>
+                <option value="zoom2">2x 无损变焦</option>
+              </select>
+              <div class="vfp-ctl-row" style="margin-top:8px;"><span>画幅比例</span><b id="vfpRatioText">16:9</b></div>
+              <div class="vfp-seg" id="vfpRatioSeg">
+                <button data-ratio="16:9" class="on" onclick="onPreviewRatio('16:9', this)">16:9</button>
+                <button data-ratio="4:3" onclick="onPreviewRatio('4:3', this)">4:3</button>
+                <button data-ratio="9:16" onclick="onPreviewRatio('9:16', this)">9:16</button>
+              </div>
+            </div>
+
+            <div class="vfp-group">
+              <div class="vfp-group-title">色彩 Color</div>
+              <select id="vfpColorSelect" class="vfp-select" onchange="onPreviewColor(this.value)">
+                <option value="dlog" selected>10-bit D-Log M</option>
+                <option value="hlg">10-bit HLG</option>
+                <option value="normal">标准 Normal</option>
+              </select>
+              <div class="vfp-ctl-row"><span>白平衡 WB</span><b id="vfpWbVal">5600K</b></div>
+              <input type="range" id="vfpWbRange" class="vfp-range" min="2500" max="8500" step="100" value="5600" oninput="onPreviewWb(this.value)" />
+              <div class="vfp-ctl-row"><span>锐度 Sharpness</span><b id="vfpSharpVal">0</b></div>
+              <input type="range" id="vfpSharpRange" class="vfp-range" min="-2" max="2" step="1" value="0" oninput="onPreviewSharp(this.value)" />
+              <div class="vfp-ctl-row"><span>降噪 Noise Reduction</span><b id="vfpNrVal">0</b></div>
+              <input type="range" id="vfpNrRange" class="vfp-range" min="-2" max="2" step="1" value="0" oninput="onPreviewNr(this.value)" />
+            </div>
+
+            <div class="vfp-group">
+              <div class="vfp-group-title">稳定 Stabilization</div>
+              <select id="vfpEisSelect" class="vfp-select" onchange="onPreviewEis(this.value)">
+                <option value="off">关闭防抖（模拟手持抖动）</option>
+                <option value="rs">RockSteady</option>
+                <option value="rsplus" selected>RockSteady 3.0+</option>
+                <option value="horizon">HorizonSteady 360°</option>
+                <option value="balance">地平线校正 ±45°</option>
+              </select>
+              <div class="vfp-toggle-row" style="margin-top:8px;">
+                <button class="vfp-toggle on" id="vfpGridToggle" onclick="togglePreviewGrid()">网格线</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="vfp-warn" id="vfpWarn" style="margin-top: 10px;">✅ 曝光准确：ISO 100 · 1/125s · ND8，画面层次完整。</div>
+      </div>
+
+      <div class="lab-grid">
+        <div class="panel-card">
+          <div style="font-size:16px; font-weight:700; margin-bottom:14px;">🎛️ 智能曝光与防抖参数推导器</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="control-group">
+              <label class="control-label">1. 选择拍摄运动类型</label>
+              <select id="calcSport" class="select" onchange="updateParamCalc()">
+                <option value="portrait" selected>👩 旅拍人像 / 情侣跟拍 (防畸变+自然肤色)</option>
+                <option value="landscape">🏔️ 自然风光大景 / 山川云海 (13.5档高动态)</option>
+                <option value="waterfall">🌊 溪流瀑布慢门拉丝 / 海浪雾化 (风光长曝)</option>
+                <option value="photo40m">📷 4000万像素静态风光与人像拍照 (RAW)</option>
+                <option value="vlog">🏃 徒步森林 / 旅行手持 Vlog (人物居中)</option>
+                <option value="dive">🤿 海岛浮潜半水下人像 / 深潜珊瑚</option>
+                <option value="mtb">🚵 山地骑行 / 滑雪 / 机车运动 POV</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label class="control-label">2. 环境光线条件</label>
+              <select id="calcLight" class="select" onchange="updateParamCalc()">
+                <option value="sunny">☀️ 晴天正午 / 雪地高反光强光</option>
+                <option value="golden" selected>🌅 日出日落黄金时刻 (Golden Hour)</option>
+                <option value="cloudy">☁️ 阴天 / 树林阴影穿梭交替</option>
+                <option value="night">🌃 城市霓虹夜景 / 隧道暗光</option>
+                <option value="underwater">🌊 水下 5m–18m 自然光环境</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="control-group">
+              <label class="control-label">3. 期望画面风格与后期需求</label>
+              <select id="calcStyle" class="select" onchange="updateParamCalc()">
+                <option value="cinema" selected>🎞️ 180° 快门电影感运动模糊 + 10-bit 调色</option>
+                <option value="slowmo">⚡ 4K/120fps 刀锐无残影升格慢动作</option>
+                <option value="straight">📱 直出高饱和免调色快速发片</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label class="control-label">4. 使用机身型号</label>
+              <select id="calcModel" class="select" onchange="updateParamCalc()">
+                <option value="Action 5 Pro" selected>DJI Osmo Action 5 Pro</option>
+                <option value="Action 4">DJI Osmo Action 4</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="hud-screen">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:#ff7733; font-weight:700;" id="hudPresetName">🎯 推荐参数方案：黄金时刻电影感 POV</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="copy-spec-btn" onclick="applyCalcToPreview()">⬇️ 应用推荐到取景器</button>
+                <button class="copy-spec-btn" onclick="applyCalcToPlanner()">➕ 一键加入外拍分镜计划</button>
+              </div>
+            </div>
+            <div class="hud-grid">
+              <div class="hud-box">
+                <div class="hud-box-label">分辨率 / 帧率</div>
+                <div class="hud-box-val" id="hudRes">4K (4:3) 60fps</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">快门速度 (Shutter)</div>
+                <div class="hud-box-val" id="hudShutter">1/120s</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">感光度 (ISO)</div>
+                <div class="hud-box-val" id="hudIso">100 - 800</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">推荐 ND 滤镜</div>
+                <div class="hud-box-val" style="color:#ff884d;" id="hudNd">ND8 / ND16</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">增稳模式 (EIS)</div>
+                <div class="hud-box-val" id="hudEis">RockSteady+</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">视角 (FOV)</div>
+                <div class="hud-box-val" id="hudFov">155° 超广角</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">色彩模式 & 位深</div>
+                <div class="hud-box-val" id="hudColor">10-bit D-Log M</div>
+              </div>
+              <div class="hud-box">
+                <div class="hud-box-label">白平衡 / 锐度降噪</div>
+                <div class="hud-box-val" id="hudWb">5200K | -1 / -1</div>
+              </div>
+            </div>
+            <div style="margin-top:12px; font-size:12px; color:#94a3b8; line-height:1.55;" id="hudTip">
+              💡 拍摄建议：使用 4:3 画幅可在后期通过 Gyroflow 或剪映自由裁切 16:9 横屏与 9:16 竖屏，保留最大上下视角冲击力。
+            </div>
+            <div style="margin-top:10px; font-size:11px; color:var(--text-muted); line-height:1.55;" id="calcLinkNote">
+              取景器与推荐器是同一套曝光逻辑：手动调整取景器后，切换下方下拉框不会再覆盖你的 EV / ISO / 快门 / ND / WB；点「应用推荐到取景器」可重新同步。
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:16px; font-weight:700;">🎨 10-bit D-Log M 宽容度与 LUT 还原对比</div>
+            <span style="font-size:12px; color:var(--dji-cyan);" id="lutSliderLabel">拖动滑块对比 (50%)</span>
+          </div>
+          <p style="font-size:12.5px; color:var(--text-sub); margin-top:4px;">
+            Action 4 / Action 5 Pro 的 10-bit D-Log M 可保留超过 10 亿种色彩与高光暗部细节，配合官方 Rec.709 还原 LUT 瞬间呈现电影质感：
+          </p>
+
+          <div class="lut-compare-box" id="lutBox">
+            <img class="lut-img-graded" src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1000&q=80" alt="Rec.709 Graded" />
+            <div class="lut-img-dlog-wrap" id="lutLeftWrap">
+              <img class="lut-img-dlog" src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1000&q=80" alt="D-Log M Flat" />
+            </div>
+            <div class="lut-divider" id="lutDivider"></div>
+            <span class="lut-tag" style="left:12px;">左：D-Log M 原始灰片</span>
+            <span class="lut-tag" style="right:12px; background:rgba(255,85,0,0.85);">右：加载 DJI Rec.709 LUT + 风格化</span>
+          </div>
+          <input type="range" min="5" max="95" value="50" style="width:100%; margin-top:10px; accent-color:#ff5500; cursor:pointer;" oninput="onLutSlide(this.value)" />
+
+          <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:13.5px; font-weight:700;">📊 ND 滤镜档位速查（点击即可预览减光）</div>
+              <span style="font-size:11px; color:var(--text-muted);">CPL 另减约 1 档</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; font-size:11px; text-align:center;">
+              <div class="vfp-filter-card" data-nd="0" onclick="setPreviewND(0)" role="button" tabindex="0" title="点击套用无滤镜">
+                <b>无滤镜</b><span>透光 100%</span><span>室内 / 夜景 / 阴天</span><span>点击套用</span>
+              </div>
+              <div class="vfp-filter-card" data-nd="3" onclick="setPreviewND(3)" role="button" tabindex="0" title="点击套用 ND8 减光">
+                <b>ND8</b><span>减 3 档 · 12.5%</span><span>日出日落 / 树荫</span><span>点击套用</span>
+              </div>
+              <div class="vfp-filter-card" data-nd="4" onclick="setPreviewND(4)" role="button" tabindex="0" title="点击套用 ND16 减光">
+                <b>ND16</b><span>减 4 档 · 6.3%</span><span>晴天上午 / 下午</span><span>点击套用</span>
+              </div>
+              <div class="vfp-filter-card" data-nd="5" onclick="setPreviewND(5)" role="button" tabindex="0" title="点击套用 ND32 减光">
+                <b>ND32</b><span>减 5 档 · 3.1%</span><span>正午烈日 / 海面</span><span>点击套用</span>
+              </div>
+              <div class="vfp-filter-card" data-nd="6" onclick="setPreviewND(6)" role="button" tabindex="0" title="点击套用 ND64 减光">
+                <b>ND64</b><span>减 6 档 · 1.6%</span><span>雪地正午 / 慢门流水</span><span>点击套用</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: MOUNT & RIGS GUIDE -->
+    <div id="page-rigs" class="page-view">
+      <div class="section-header">
+        <div>
+          <div class="section-title">💡 Action 5 Pro 人像不畸变、自然风光出大片 · 16 大进阶玩法图鉴</div>
+          <div class="section-sub">打破“运动相机只能拍极限运动”的刻板印象！掌握焦段、去畸变、慢门与特殊机位，用 Action 5 Pro 拍出电影感人像与国家地理级自然景观</div>
+        </div>
+      </div>
+      <div class="rigs-grid" id="rigsGrid"></div>
+    </div>
+
+    <!-- PAGE 5: SHOOTING PLANNER & GEAR CHECKLIST -->
+    <div id="page-plan" class="page-view">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📅 DJI Action 外拍分镜计划表 & 出行器材检查单</div>
+          <div class="section-sub">规划每次外拍的分镜脚本、起止时间段、机位支架与目标曝光参数，完成后直接打勾归档</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="copy-spec-btn" onclick="exportAllData()">💾 备份全部数据</button>
+          <button class="copy-spec-btn" onclick="triggerImportData()">📥 导入备份</button>
+          <button class="copy-spec-btn" onclick="window.print()">🖨️ 打印当前页</button>
+        </div>
+      </div>
+
+      <div class="planner-grid">
+        <div class="panel-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+            <div style="font-size:16px; font-weight:700;">🎬 分镜拍摄计划清单 (Shot List)</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:var(--text-sub); align-self:center;">一键载入主题方案：</span>
+              <button class="copy-spec-btn" onclick="loadPlanTemplate('mountain')">🏔️ 川西雪山风光</button>
+              <button class="copy-spec-btn" onclick="loadPlanTemplate('portrait')">👩 海边日落人像</button>
+              <button class="copy-spec-btn" onclick="loadPlanTemplate('forest')">🌲 森林溪谷慢门</button>
+              <button class="copy-spec-btn" onclick="loadPlanTemplate('night')">🌃 城市蓝调夜拍</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1.5fr 1.1fr 0.9fr; gap:8px; margin-bottom:8px;">
+            <input type="text" id="planTitleInput" class="input" placeholder="输入分镜内容（如：林道飞包第一视角+车架后视双机位）..." />
+            <input type="text" id="planTimeInput" class="input" placeholder="时间段 如 2026-10-24 16:00-17:30" value="2026-10-24 16:00-17:30" />
+            <select id="planMountInput" class="select">
+              <option value="头盔下巴支架">🪖 头盔下巴支架</option>
+              <option value="磁吸胸带/挂脖">🦺 磁吸胸带/挂脖</option>
+              <option value="冲浪咬嘴支架">🌊 冲浪咬嘴支架</option>
+              <option value="1.5m 延长杆跟拍">🦯 1.5m 延长杆跟拍</option>
+              <option value="车把/管夹固定座">🚲 车把/管夹固定座</option>
+              <option value="吸盘低机位贴地">🚗 吸盘低机位贴地</option>
+            </select>
+          </div>
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr auto; gap:8px; margin-bottom:18px;">
+            <input type="text" id="planParamInput" class="input" placeholder="预设参数（如：4K 4:3 60fps | 1/120s | D-Log M | ND16）" value="4K(4:3) 60fps | 1/120s | D-Log M | ND16" />
+            <input type="text" id="planLocInput" class="input" placeholder="拍摄地点 / 备注..." />
+            <button class="btn btn-orange" onclick="addShotPlan()">➕ 添加分镜计划</button>
+          </div>
+          <div id="shotPlanList"></div>
+        </div>
+
+        <div class="panel-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:16px; font-weight:700;">🎒 外拍器材与附件核查表</div>
+            <span style="font-size:12.5px; color:var(--dji-emerald); font-weight:700;" id="gearProgressText">已备齐 0 / 10</span>
+          </div>
+          <p style="font-size:12.5px; color:var(--text-sub); margin-top:4px;">
+            出发前逐项点击打勾，避免到了山顶或海边发现忘带快拆底座或存储卡：
+          </p>
+          <div class="gear-list" id="gearChecklistBox"></div>
+          <div style="margin-top:16px; display:flex; gap:8px;">
+            <input type="text" id="newGearInput" class="input" placeholder="补充自定义器材（如：漂浮手把 / 防雾插片）..." onkeydown="if(event.key==='Enter') addCustomGear()" />
+            <button class="btn" onclick="addCustomGear()">＋ 添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal for Work Detail Lightbox -->
+  <div class="modal-backdrop" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
+    <div class="modal-box" style="max-width:640px;" id="detailModalBody"></div>
+  </div>
+
+  <!-- Modal for Adding New Inspiration Work -->
+  <div class="modal-backdrop" id="addWorkModal" onclick="if(event.target===this) closeAddWorkModal()">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div style="font-size:17px; font-weight:800;">➕ 录入新 DJI Action 摄影灵感作品</div>
+        <button class="btn" style="padding:4px 10px;" onclick="closeAddWorkModal()">✕</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <input type="text" id="nwTitle" class="input" placeholder="作品标题（如：川西雪山日照金山延时摄影）" />
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <select id="nwCat" class="select">
+            <option value="旅拍人像">旅拍人像</option>
+            <option value="自然风光">自然风光</option>
+            <option value="极限骑行">极限骑行</option>
+            <option value="水上水下">水上水下</option>
+            <option value="冰雪运动">冰雪运动</option>
+            <option value="暗光夜景">暗光夜景</option>
+            <option value="街头与延时">街头与延时</option>
+          </select>
+          <input type="text" id="nwModel" class="input" value="Osmo Action 5 Pro" placeholder="机身型号" />
+        </div>
+        <input type="text" id="nwImg" class="input" placeholder="封面图片 URL（留空则自动匹配高清运动摄影图）" />
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+          <input type="text" id="nwRes" class="input" value="4K 4:3 60fps" placeholder="分辨率帧率" />
+          <input type="text" id="nwShut" class="input" value="1/120s · ND16" placeholder="快门与滤镜" />
+          <input type="text" id="nwEis" class="input" value="RockSteady+" placeholder="增稳与视角" />
+        </div>
+        <input type="text" id="nwMount" class="input" placeholder="机位安装与配件（如：磁吸胸带 + 155° 超广角）" />
+        <input type="text" id="nwDesc" class="input" placeholder="运镜灵感与布光要点说明..." />
+        <button class="btn btn-orange" style="margin-top:6px; height:40px;" onclick="saveNewWork()">保存作品灵感</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastEl">已复制到剪贴板</div>
+  <input type="file" id="importDataFile" accept=".json,application/json" style="display:none;" onchange="importAllData(event)" />
+
+  <script>
+    const STORAGE_WORKS = "dji_action_lab_works_v4";
+    const STORAGE_PLANS = "dji_action_lab_plans_v4";
+    const STORAGE_GEARS = "dji_action_lab_gears_v2";
+
+    const HERO_SCENES = [
+      {
+        badge: "🏔️ 13.5 档高动态自然风光",
+        title: "用口袋里的 Action 5 Pro，<br/>拍出震撼山川湖海与电影感人像",
+        desc: "全新 1/1.3 英寸传感器带来 13.5 档超大动态范围与 4000 万像素 RAW 静态摄影能力。无论是日照金山的大光比风光、森林溪流慢门，还是开启去畸变与 2 倍无损变焦的夕阳人像，皆可轻松拿捏。",
+        img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=85",
+        cam: "CAM : DJI Osmo Action 5 Pro",
+        res: "RES : 4K (16:9) 60fps / 40MP RAW Photo",
+        eis: "EIS : RockSteady 3.0+ | FOV 标准(去畸变)",
+        exp: "EXP : 1/120s | ISO 100-400 | 10-bit D-Log M"
+      },
+      {
+        badge: "👩 黄金时刻逆光旅拍人像",
+        title: "标准去畸变 + 2倍无损变焦，<br/>运动相机拍人像也能脸小不变形",
+        desc: "告别传统运动相机拍人像的“大鼻子鱼眼感”！开启「标准(去畸变) FOV」配合 1.5x–2x 变焦，让人物处于画面中心 60% 黄金区，逆光下发丝发光、肤色通透自然。",
+        img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1400&q=85",
+        cam: "CAM : DJI Osmo Action 5 Pro",
+        res: "RES : 4K (16:9) 60fps | 2x 无损变焦",
+        eis: "EIS : 智能人物居中跟随 | 标准(去畸变)",
+        exp: "EXP : 1/120s | EV -0.3 | WB 5600K | ND8"
+      },
+      {
+        badge: "🌊 森林溪流慢门与海岸风光",
+        title: "加装 ND64 减光镜长曝光，<br/>把湍急溪流拍成丝绸雾化大片",
+        desc: "利用磁吸三脚架固定 Action 5 Pro，挂载 ND32 或 ND64 滤镜并将快门放慢至 1/2s–1s，配合 4000 万像素 RAW 格式或慢快门视频，轻松拍出如梦似幻的流水拉丝景观。",
+        img: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=1400&q=85",
+        cam: "CAM : DJI Osmo Action 5 Pro",
+        res: "RES : 40MP RAW 拍照 / 4K 30fps 慢门",
+        eis: "EIS : 关闭防抖 (三脚架固定) | FOV 标准",
+        exp: "EXP : 1/2s 长曝光 | ISO 100 | ND64 滤镜"
+      },
+      {
+        badge: "🌃 蓝调夜景与篝火环境人像",
+        title: "SuperNight 超级夜景算法，<br/>暗光拍人像与星空依然纯净通透",
+        desc: "在日落后的蓝调时刻、城市霓虹街角或露营篝火旁，开启 Action 5 Pro 专属 SuperNight 超级夜景模式，AI 降噪算法大幅压制暗部彩噪，还原温柔夜景氛围感。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1400&q=85",
+        cam: "CAM : DJI Osmo Action 5 Pro",
+        res: "RES : 4K (16:9) 30fps | SuperNight 夜景",
+        eis: "EIS : RockSteady 3.0 | FOV 标准(去畸变)",
+        exp: "EXP : 1/100s | ISO 100-6400 | WB 4800K"
+      }
+    ];
+
+    const DEFAULT_WORKS = [
+      // ==================== 12 组：Action 5 Pro 旅拍人像系列 ====================
+      {
+        id: "w_p1",
+        title: "海边落日黄金逆光人像 · 2倍变焦零畸变电影感",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变) + 2.0x变焦",
+        img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "1/120s · ND8",
+        iso: "100-400 (EV -0.3)",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "迷你延长杆手持齐眼平视高度",
+        desc: "【人像防畸变秘诀】开启「标准(去畸变)」并将画面放大至 1.8x–2x，人物站在画面中央，让夕阳处于人物肩膀后方形成金色发丝轮廓光，曝光补偿设为 -0.3EV 防止面部过曝。"
+      },
+      {
+        id: "w_p2",
+        title: "单人山海草甸奔跑回眸 · AI 智能人物居中锁定",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "人物居中跟随 (9:16/16:9)",
+        img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=80",
+        res: "2.7K / 4K 60fps",
+        shutter: "Auto · ND16",
+        iso: "100-800",
+        color: "10-bit 标准 (直出好肤色)",
+        eis: "Subject Tracking 人物跟随",
+        mount: "三脚架固定于礁石/草地 + 语音控制拍录",
+        desc: "【一个人旅拍神器】把相机固定在远处三脚架上，开启 Action 5 Pro「智能跟随（人物居中）」，你在海边或草地自由奔跑回眸，算法会自动框定人物并始终保持在C位。"
+      },
+      {
+        id: "w_p3",
+        title: "公路旅行车窗迎风侧颜 · 车外吸盘电影感人像",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变) + 1.5x变焦",
+        img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "1/120s · ND16",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "车门后视镜下方强力吸盘朝向车窗内",
+        desc: "【公路电影感经典机位】单反体积太大很难挂车外，Action 5 Pro 仅 145g 可稳稳吸在副驾车门外侧，拍出人物探出车窗吹风、背景山海飞速后退的《白日梦想家》同款镜头。"
+      },
+      {
+        id: "w_p4",
+        title: "森林秘境丁达尔光束人像 · 逆光剪影与半身漫步",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 120fps (4倍慢镜)",
+        shutter: "1/240s · EV -0.7",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "HorizonBalancing",
+        mount: "1.5m 延长杆低角度穿过树叶前景跟拍",
+        desc: "清晨林间水雾折射出丁达尔光束，让人物穿着浅色衣服走在光束中央，开启 4K/120fps 慢动作，树叶作为前景虚化划过镜头，仙气十足。"
+      },
+      {
+        id: "w_p5",
+        title: "露营篝火晚会暖光人像 · SuperNight 暗光肤色还原",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变) + 1.4x",
+        img: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 30fps",
+        shutter: "1/100s · 无滤镜",
+        iso: "100-6400 (SuperNight)",
+        color: "10-bit 标准",
+        eis: "RockSteady 3.0",
+        mount: "桌面迷你三脚架置于篝火侧方 1.2米",
+        desc: "借助露营灯与篝火的2700K暖光照射人物面部，开启 Action 5 Pro 超级夜景模式，背后的深邃夜空与帐篷轮廓清晰纯净，没有传统运动相机的涂抹感。"
+      },
+      {
+        id: "w_p6",
+        title: "热带海岛半水下分水岭人像 · 水上水下同框奇观",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (4:3) 120fps",
+        shutter: "1/500s · 分水球罩",
+        iso: "100-400",
+        color: "10-bit HLG / D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "6英寸亚克力分水球 (Dome Port) + 漂浮手柄",
+        desc: "【海岛爆款人像玩法】使用分水球将水面一分为二：上半部分是蓝天椰林与人物笑脸，下半部分是清澈见底的海水与泳姿，4K/120fps 慢动作抓拍出水瞬间。"
+      },
+      {
+        id: "w_p7",
+        title: "牵手奔向山海第一视角 · 磁吸挂脖男友/女友视角",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "155° 超广角 / 4:3 画幅",
+        img: "https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (4:3) 60fps",
+        shutter: "1/120s · ND16",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "磁吸挂脖支架倒装（解放双手牵手跑）",
+        desc: "【情侣旅拍必拍镜头】佩戴磁吸挂脖支架，伸出一只手牵着对方奔向大海或花海，4:3 超广角能把伸出的手臂、对方回眸的笑脸和整片大海全部收录，代入感拉满！"
+      },
+      {
+        id: "w_p8",
+        title: "欧洲小镇/古镇窄巷漫步跟拍 · 4000万像素抓拍人像",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变) + 1.5x",
+        img: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1000&q=80",
+        res: "40MP RAW 拍照 (7296×5472)",
+        shutter: "1/500s · Auto",
+        iso: "100-400",
+        color: "RAW + JPEG",
+        eis: "静态定时连拍 (3秒间隔)",
+        mount: "延长杆低机位仰拍建筑与人物同框",
+        desc: "在狭窄古街巷里，手机和长焦很难拍全高耸建筑与人物全身；用 Action 5 Pro 标准去畸变模式开启 4000 万像素 3秒定时连拍，边走边抓拍最松弛的旅拍步伐。"
+      },
+      {
+        id: "w_p9",
+        title: "山巅悬崖云海英雄镜头 · 1.5m延长杆 360° 环绕人像",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "HorizonSteady 360°",
+        img: "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 120fps",
+        shutter: "1/240s · ND16",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "HorizonSteady 360° 地平线",
+        mount: "1.5m 延长杆举高 45° 围绕人物旋转一周",
+        desc: "站在山顶或海边礁石上，手持完全拉长的 1.5 米延长杆高举过头顶 45° 对准自己，原地转一圈，开启 120fps 慢动作与地平线增稳，拍出堪比无人机环绕的史诗级人像！"
+      },
+      {
+        id: "w_p10",
+        title: "阳光沙滩椰林情绪写真 · 2.1米超长自拍杆俯拍视角",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1000&q=80",
+        res: "40MP RAW / 4K 60fps",
+        shutter: "1/400s · CPL偏振镜",
+        iso: "100-200",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "延长杆垂直高举 90° 上帝视角俯拍",
+        desc: "人躺在白沙滩或翡翠色浅水区，将延长杆垂直向上举高俯拍，加上 CPL 偏振镜过滤水面反光，人物如同漂浮在透明玻璃海之上。"
+      },
+      {
+        id: "w_p11",
+        title: "咖啡馆/书店窗边光影人像 · 前后双彩屏构图自拍",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变) + 2.0x变焦",
+        img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 30fps",
+        shutter: "1/60s · 无滤镜",
+        iso: "100-800",
+        color: "10-bit D-Log M",
+        eis: "关闭防抖 (桌面静置)",
+        mount: "磁吸快拆底座直接吸在铁艺桌架/窗框上",
+        desc: "利用 Action 5 Pro 的高亮度 OLED 前置触摸彩屏实时看着自己的构图，2 倍无损变焦裁掉杂乱边缘，窗边侧光让人物面部光影立体柔和。"
+      },
+      {
+        id: "w_p12",
+        title: "雨后城市街角水洼镜像人像 · 贴地 1cm 奇幻对称",
+        category: "旅拍人像",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1000&q=80",
+        res: "40MP RAW / 4K 120fps",
+        shutter: "1/240s · 无滤镜",
+        iso: "100-800",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "相机倒置直接放在积水路面边缘",
+        desc: "把相机上下倒置直接贴在雨后积水坑表面，镜头中心紧贴水面，人物从水坑对面跨步走过，用 4K/120fps 慢动作记录脚尖踏破水面倒影的瞬间。"
+      },
+
+      // ==================== 12 组：Action 5 Pro 自然风光与地理景观系列 ====================
+      {
+        id: "w_l1",
+        title: "高山冰川湖泊日照金山与倒影 · 13.5档极限动态范围",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps / 40MP RAW",
+        shutter: "1/200s · CPL偏振镜",
+        iso: "100-200",
+        color: "10-bit D-Log M",
+        eis: "HorizonSteady 地平线",
+        mount: "磁吸三脚架贴近水面 2cm 极低机位",
+        desc: "将相机镜头贴近湖面仅 2 厘米，利用水面形成上下完全对称的雪山倒影；挂载 CPL 偏振镜消除水面杂光并加深蓝天饱和度。"
+      },
+      {
+        id: "w_l2",
+        title: "原始森林幽谷丁达尔耶稣光 · 晨雾穿透光束纪实",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "1/160s · EV -0.7",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "HorizonBalancing (±45°)",
+        mount: "1.5m 延长杆模拟小型摇臂横向平移",
+        desc: "清晨树林有水雾时，刻意降低曝光补偿（-0.7EV）压暗树林背景，丁达尔光束会瞬间清晰浮现；双手持延长杆以古树为前景缓慢横移推进。"
+      },
+      {
+        id: "w_l3",
+        title: "秘境森林瀑布慢门拉丝 · ND64 白昼长曝光丝绸感",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=1000&q=80",
+        res: "40MP RAW 照片 / 4K 24fps",
+        shutter: "1/2s 慢快门 · ND64",
+        iso: "100 (锁死最低感光度)",
+        color: "RAW / 10-bit D-Log M",
+        eis: "关闭防抖 (脚架固定)",
+        mount: "八爪鱼三脚架缠绕于溪边岩石/树枝",
+        desc: "白天想把溪流瀑布拍出丝绸雾化感，必须加装 ND64 减光镜，手动将 ISO 锁在 100，快门调慢至 1/4 秒～1 秒，固定在石头上拍摄（关闭防抖）。"
+      },
+      {
+        id: "w_l4",
+        title: "巍峨雪山群峰与冷杉林海 · 4000万像素 8K 风光大片",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80",
+        res: "40MP RAW (7296×5472)",
+        shutter: "1/400s · UV/CPL",
+        iso: "100",
+        color: "RAW + JPEG",
+        eis: "三脚架静态高画质拍照",
+        mount: "1.5m 延长杆展开三脚架置于山脊高点",
+        desc: "发挥 Action 5 Pro 全新 4000 万像素传感器优势，在 ISO 100 原生感光度下拍摄 DNG RAW 格式，放大 200% 依然能看清雪山岩石纹理。"
+      },
+      {
+        id: "w_l5",
+        title: "破晓云海翻涌山谷 · 3秒间隔 4K RAW 静态延时",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1000&q=80",
+        res: "4K 延时摄影 (RAW照片序列)",
+        shutter: "1/60s · ND16 (带云海流动模糊)",
+        iso: "100-200",
+        color: "RAW 照片序列留存",
+        eis: "关闭防抖 (三脚架锁紧)",
+        mount: "重型桌面脚架压石头防山顶强风",
+        desc: "拍摄日出云海延时，将间隔设为 3 秒、总时长 30 分钟，机内直接生成顺滑 4K 视频的同时保留全部 RAW 原片，云雾如波涛般在山谷间流淌。"
+      },
+      {
+        id: "w_l6",
+        title: "托斯卡纳/伊犁日落金色草甸 · 贴地花草推进揭示大景",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "1/120s · ND8",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "HorizonSteady 地平线",
+        mount: "1.5m 延长杆贴草尖逆光向前慢推",
+        desc: "日落前 30 分钟黄金时刻，将相机悬挂在延长杆前端，贴着被夕阳照透的狗尾草尖向前推进并缓缓抬升，画面温暖治愈。"
+      },
+      {
+        id: "w_l7",
+        title: "挪威峡湾/高山翡翠湖泊 · 悬崖俯瞰超广角震撼全景",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "155° 超广角",
+        img: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (4:3) 60fps",
+        shutter: "1/240s · ND16",
+        iso: "100-200",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "1.5m 延长杆探出悬崖观景台向下俯拍",
+        desc: "在安全护栏内将 1.5m 延长杆向外探出并向下俯拍，开启 155° 超广角 4:3 画幅，拍出垂直落差数百米的峡湾全景视觉奇观。"
+      },
+      {
+        id: "w_l8",
+        title: "深秋红叶森林苔藓小径 · 超低机位微距感穿行",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 120fps",
+        shutter: "1/240s · 无滤镜",
+        iso: "100-800",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "倒握小脚架贴近落叶层 5cm 低速前推",
+        desc: "模拟小动物在森林地面穿行的独特视角！贴近厚厚的落叶与苔藓仅 5cm 缓慢前推，开启 120fps 慢动作，雨滴从叶片滑落清晰可见。"
+      },
+      {
+        id: "w_l9",
+        title: "大漠沙丘光影曲线与驼队 · 侧逆光高反差几何美学",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变) + 2.0x变焦",
+        img: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1000&q=80",
+        res: "40MP RAW / 4K 60fps",
+        shutter: "1/500s · ND16",
+        iso: "100-200 (EV -0.7)",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "手持 2x 变焦压缩沙丘明暗线条",
+        desc: "日落时沙丘迎光面金黄、背光面深邃，使用 2 倍变焦裁切画面并压低曝光 -0.7EV，拍出极具极简主义美感的沙漠光影S曲线（机身全密封防尘不怕进沙）。"
+      },
+      {
+        id: "w_l10",
+        title: "火山地貌与旷野云层流转 · 10倍速率移动延时 (Hyperlapse)",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80",
+        res: "4K Hyperlapse (10x 速率)",
+        shutter: "1/120s · ND16",
+        iso: "100-400",
+        color: "10-bit 标准",
+        eis: "运动延时内置增稳",
+        mount: "手持延长杆保持匀速沿山脊步道前行",
+        desc: "边徒步边开启「运动延时（Hyperlapse）10x」，对着远处的火山或孤峰稳步前行 5 分钟，成片呈现出地面飞速后退、天上风云变幻的震撼时空穿梭感。"
+      },
+      {
+        id: "w_l11",
+        title: "高山草甸晨雾湖泊静谧空镜 · 3:2/16:9 电影感慢摇",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "1/120s · ND8",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "三脚架固定 + DJI Mic 2 放置湖边录水声鸟鸣",
+        desc: "拍自然风光不要每个镜头都乱动！用固定机位静静拍 10 秒晨雾在水面缓缓飘散，同时用 DJI Mic 2 贴近水边录下清脆的水波与鸟鸣，是旅拍大片最好的开场白。"
+      },
+      {
+        id: "w_l12",
+        title: "无尽旷野公路向远山延伸 · 车顶中央对称延时与实拍",
+        category: "自然风光",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps & Hyperlapse 5x",
+        shutter: "1/120s · ND32",
+        iso: "100-200",
+        color: "10-bit D-Log M",
+        eis: "HorizonSteady 地平线",
+        mount: "汽车天窗/引擎盖中央强力吸盘固定",
+        desc: "在西北或川西笔直的旷野公路上，将相机吸在引擎盖正中央，加 ND32 滤镜将快门控制在 1/120s，路面标线具有电影级流动感，远方雪山迎面而来。"
+      },
+
+      // ==================== 8 组：延时创意 / 水上水下 / 户外运动经典系列 ====================
+      {
+        id: "w8",
+        title: "高山银河云海移动延时 · 夜间长曝星空与人像同框",
+        category: "街头与延时",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1000&q=80",
+        res: "4K Timelapse (RAW照片序列)",
+        shutter: "15s 长曝光 · 间隔 20s",
+        iso: "1600",
+        color: "RAW + JPEG",
+        eis: "关闭防抖 (三脚架固定)",
+        mount: "磁吸快拆转 1/4 螺口重型三脚架",
+        desc: "使用延时摄影模式（静态三脚架关闭 EIS），单张快门 15 秒、ISO 1600，同时让人物站在帐篷旁拿手电筒指向银河静止 15 秒，即可拍出震撼星空人像！"
+      },
+      {
+        id: "w4",
+        title: "城市蓝调霓虹夜拍人像与机车 · SuperNight 超级夜景",
+        category: "街头与延时",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准(去畸变)",
+        img: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 30fps",
+        shutter: "1/100s · 无滤镜",
+        iso: "100-6400 (SuperNight)",
+        color: "标准 (10-bit)",
+        eis: "RockSteady 3.0",
+        mount: "手持迷你三脚架 + 街角霓虹侧逆光",
+        desc: "利用街边店铺霓虹灯作为人物面部轮廓光，将快门下限锁在 1/100s 以上并开启 Action 5 Pro 超级夜景模式，背景车流光斑绚丽且人物面部干净无噪点。"
+      },
+      {
+        id: "w6",
+        title: "落日公园滑板与生活感抓拍 · 超低机位贴地推进",
+        category: "街头与延时",
+        camera: "Osmo Action 5 Pro",
+        fov: "155° 超广角",
+        img: "https://images.unsplash.com/photo-1564982752979-3f7bc974d29a?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (4:3) 120fps",
+        shutter: "1/240s · ND8",
+        iso: "100-800",
+        color: "10-bit D-Log M",
+        eis: "RockSteady+",
+        mount: "迷你三脚架倒握离地 10cm 仰拍推进",
+        desc: "拍全身穿搭或街头漫步时，将相机倒握离地 15cm 略微仰拍，不仅能拉长人物腿部比例，还能把天空晚霞完整纳入背景。"
+      },
+      {
+        id: "w_river",
+        title: "峡谷碧水皮划艇第一视角 · 浪花飞溅高速快门凝固",
+        category: "街头与延时",
+        camera: "Osmo Action 5 Pro",
+        fov: "155° 超广角",
+        img: "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (4:3) 120fps",
+        shutter: "1/500s · 裸机防水",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "HorizonSteady 地平线",
+        mount: "船头吸盘回拍人物 + 头盔第一视角双机位",
+        desc: "把相机吸在皮划艇或桨板船头朝向自己，开启地平线增稳，无论船身如何随波浪摇晃，背景峡谷始终平稳，人物划桨动作极具张力。"
+      },
+      {
+        id: "w5",
+        title: "珊瑚礁自由潜伴游人像 · 20米裸机深潜原生色彩",
+        category: "水上水下",
+        camera: "Osmo Action 5 Pro",
+        fov: "广角 (Wide)",
+        img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "Auto (最高 1/120s)",
+        iso: "100-1600",
+        color: "10-bit D-Log M",
+        eis: "RockSteady",
+        mount: "水下双手持稳定托架 + 自动水压计开启录制",
+        desc: "利用机身内置色温传感器与水压计，入水即自动开启录制并还原海底红光衰减与人物自然肤色，配合 10-bit D-Log M 后期青橙调色通透感极佳。"
+      },
+      {
+        id: "w2",
+        title: "玻璃管浪内部第一视角 · 4倍升格慢动作",
+        category: "水上水下",
+        camera: "Osmo Action 5 Pro",
+        fov: "标准 (去畸变)",
+        img: "https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 120fps",
+        shutter: "1/500s · 裸机防水",
+        iso: "100-400",
+        color: "10-bit HLG",
+        eis: "RockSteady 3.0+",
+        mount: "冲浪咬嘴支架 + 漂浮手把",
+        desc: "120fps 四倍慢动作配合 1/500s 高速快门，将飞溅的水珠颗粒感凝固在空中，启用机内色温传感器自动校正海浪偏色。"
+      },
+      {
+        id: "w3",
+        title: "阿勒泰粉雪单板跟拍 · 地平线 360° 锁定",
+        category: "水上水下",
+        camera: "Osmo Action 5 Pro",
+        fov: "HorizonSteady",
+        img: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (16:9) 60fps",
+        shutter: "1/240s · ND32",
+        iso: "100-400",
+        color: "10-bit D-Log M",
+        eis: "HorizonSteady 360°",
+        mount: "1.5m 碳纤维延长杆低机位反手跟拍",
+        desc: "雪地反光极强，挂载 ND32 滤镜压暗高光防止雪面死白；开启地平线增稳（HorizonSteady），即使延长杆剧烈摆动画面依然水平如滑轨。"
+      },
+      {
+        id: "w1",
+        title: "林道速降第一视角 · 贴地飞包冲击感",
+        category: "水上水下",
+        camera: "Osmo Action 5 Pro",
+        fov: "155° 超广角",
+        img: "https://images.unsplash.com/photo-1544191696-102dbdaeeaa0?auto=format&fit=crop&w=1000&q=80",
+        res: "4K (4:3) 60fps",
+        shutter: "1/120s · ND16",
+        iso: "100-800",
+        color: "10-bit D-Log M",
+        eis: "RockSteady 3.0+",
+        mount: "全盔下巴支架（上仰 15°）",
+        desc: "采用 4:3 全画幅配合 155° 超广角，保留车把与前方林道落差，1/120s 快门让树林边缘产生极具速度感的自然动态模糊。"
+      }
+    ];
+
+    const RIGS_DATA = [
+      {
+        badge: "PLAY 01 // 解决运动相机拍人变胖变形",
+        title: "👩 人像零畸变黄金公式：去畸变 FOV + 2倍无损变焦",
+        angle: "构图法则：人物面部处于画面中心 60% 区域，相机略低于下巴微仰 5°",
+        fov: "核心设置：FOV 设为「标准(去畸变)」+ 屏幕双指放大至 1.5x–2.0x",
+        audio: "肤色与曝光：EV 设为 -0.3，白平衡手动锁 5500K–5800K（暖白皮质感）",
+        tip: "很多人抱怨运动相机拍人像脸被拉宽，其实是因为用了 155° 超广角且把人脸放在画面边缘！只要切到「标准去畸变」并开启 Action 5 Pro 的 2 倍无损变焦，透视感立刻接近手机主摄/微单 35mm 人像头！"
+      },
+      {
+        badge: "PLAY 02 // 一个人出门旅拍不用求人",
+        title: "🎯 智能人物居中跟随 (Subject Tracking) + 语音快门",
+        angle: "机位摆放：用磁吸三脚架放在草地、礁石、栏杆或溪边石头上",
+        fov: "核心设置：划出菜单开启「智能跟随」+ 选择横屏 16:9 或竖屏 9:16",
+        audio: "远程触发：开启「语音控制（“开始录像”/“拍张照片”）」或蓝牙遥控器",
+        tip: "Action 5 Pro 内置 AI 人物识别算法，你只需要把相机放在风景漂亮的石头上，自己在山谷、海滩走动或转身回眸，取景框会自动锁定你并保持人物居中，单人也能拍出电影感他拍镜头！"
+      },
+      {
+        badge: "PLAY 03 // 模拟无人机航拍与电影摇臂",
+        title: "🦯 1.5米延长杆「贴地升起揭幕」自然风光运镜",
+        angle: "运镜轨迹：从贴近地面花草/溪水 5cm 处缓慢举高至头顶 2.5 米",
+        fov: "核心设置：4K 60fps + HorizonSteady 地平线增稳 + 10-bit D-Log M",
+        audio: "后期技巧：升起至最高点看到远方雪山/大海时，速度放慢至 50% 升格",
+        tip: "没有无人机或禁飞区怎么拍大景？用前景遮挡法！开拍时镜头贴着地面的野花或岩石，一边向前走一边把 1.5 米延长杆高举过头顶，远方的雪山湖泊瞬间豁然开朗，史诗感拉满！"
+      },
+      {
+        badge: "PLAY 04 // 自然景观大师级慢门玩法",
+        title: "🌊 溪流、瀑布与海浪「丝绸雾化」长曝光玩法",
+        angle: "固定方式：必须使用三脚架或大力夹固定在溪边岩石上（严禁手持）",
+        fov: "核心设置：PRO 手动曝光 → ISO 锁死 100 → 快门设为 1/4s ~ 1s + ND64 滤镜",
+        audio: "防抖注意：上三脚架拍慢门长曝光时，请【关闭 EIS 防抖】防止画面自动裁切漂移",
+        tip: "不管是拍 4000 万像素 RAW 照片还是拍视频，只要加上 ND32/ND64 滤镜把快门压到半秒以上，原本杂乱的水花会瞬间化作柔顺的白色丝绸，而溪边的青苔与红叶依然锐利清晰！"
+      },
+      {
+        badge: "PLAY 05 // 奇幻对称构图风光大片",
+        title: "🪞 贴水面 1 厘米「天空之镜」倒影与半水下视角",
+        angle: "黄金机位：利用 Action 5 Pro 裸机 20米防水优势，镜头底部刚巧触碰水面",
+        fov: "核心设置：4K (4:3) 60fps 或 4000万像素拍照 + 广角 FOV",
+        audio: "环境选择：清晨无风的湖泊、雨后街角的小水洼、海边退潮的浅滩",
+        tip: "单反和微单不敢贴水太近怕进水，而 Action 5 Pro 可以直接泡在水面交界处！哪怕是马路边一个巴掌大的雨水坑，只要把镜头贴到离水面 1 厘米，就能把人物和晚霞拍出震撼的上下镜像对称大片！"
+      },
+      {
+        badge: "PLAY 06 // 决定性瞬间与高画质静态照片",
+        title: "📷 4000万像素 8K 高清拍照 (RAW) + 预录制 (Pre-Rec)",
+        angle: "适用场景：旅拍抓拍人物大笑跳跃、海鸟起飞、闪电、日照金山瞬间",
+        fov: "核心设置：拍照模式选「40MP (7296×5472) RAW+JPEG」；视频开启「预录制 15秒」",
+        audio: "后期空间：RAW 格式可在 Lightroom 中大幅拉回夕阳高光与人像面部阴影",
+        tip: "Action 5 Pro 的静态照片像素提升到了约 4000 万像素（前代 4 倍）！同时在拍自然野生动物、钓鱼中鱼或朋友搞笑瞬间时开启「预录制」，按下快门前 15 秒的画面也会被完整保存，永不错过精彩瞬间！"
+      },
+      {
+        badge: "PLAY 07 // 时空浓缩的自然光影魔术",
+        title: "⏳ 日出云海 / 日转夜星空延时摄影 (Timelapse & Hyperlapse)",
+        angle: "机位建议：山顶垭口、露营帐篷前、湖畔或城市高楼天台",
+        fov: "核心设置：静态延时选「延时摄影 (RAW照片序列，间隔 3s–5s)」；边走边拍选「运动延时 10x」",
+        audio: "续航保障：搭配多功能电池盒边充边拍，低温环境使用耐寒电池（-20℃ 可用）",
+        tip: "拍云海翻涌建议间隔 2–3 秒；拍夕阳日转夜建议开启自动曝光平滑过渡；拍银河星空将单张快门设为 15 秒、ISO 1600、间隔 20 秒，让人物在帐篷旁站立不动 15 秒即可拍出人与银河同框！"
+      },
+      {
+        badge: "PLAY 08 // 让旅拍人像视频拥有电影级声音质感",
+        title: "🎙️ DJI Mic 2 蓝牙直连：人声对白 + 自然环境白噪音双轨收录",
+        angle: "佩戴方式：磁吸夹在衣领内侧，户外有风时必须套上防风毛套",
+        fov: "核心设置：一发一收或蓝牙直连 Action 5 Pro + 开启「机身麦克风音频备份」",
+        audio: "声音层次：Mic 2 录清澈人声旁白，机身内置麦录海浪、溪流、鸟鸣与脚步声",
+        tip: "自然风光与人像旅拍短片的灵魂在于声音！开启机身环境音备份后，一条音轨是干净的人声讲述，另一条音轨是立体的森林风声与溪流声，后期混音瞬间拥有纪录片质感！"
+      },
+      {
+        badge: "PLAY 09 // 公路旅行电影感王牌机位",
+        title: "🚗 车窗外侧吸盘回拍人像：风吹发丝与后退风景同框",
+        angle: "固定位置：吸附于副驾车门外侧或后视镜下方，镜头朝向车窗内人物侧脸",
+        fov: "核心设置：4K 60fps + 标准(去畸变) 1.5x + ND16 滤镜",
+        audio: "安全须知：吸盘吸附前擦净车漆灰尘，并用安全绳系在后视镜底座上双保险",
+        tip: "微单太重挂车外极易掉落，Action 5 Pro 轻巧且磁吸+吸盘极稳！夕阳逆光打在人物侧脸，车窗框住人像，窗外雪山草原飞速流逝，一秒拍出公路大片！"
+      },
+      {
+        badge: "PLAY 10 // 山顶/海角史诗感环绕镜头",
+        title: "🌀 1.5米延长杆高举 45°「假装无人机环绕」英雄镜头",
+        angle: "运镜动作：将延长杆拉到最长高举过头顶 45° 对准自己，原地匀速旋转 360°",
+        fov: "核心设置：4K (4:3) 120fps 慢动作 + HorizonSteady 360° 地平线锁定",
+        audio: "剪辑技巧：剪辑时在旋转起始点加速、转到面朝雪山/大海瞬间放慢至 25% 慢动作",
+        tip: "站在山顶、沙漠高坡或海边栈道尽头，这个动作能把人物与身后360度的壮阔山河完整交代清楚，配合 4 倍慢动作极具视觉震撼力！"
+      },
+      {
+        badge: "PLAY 11 // 森林与花海沉浸式穿行",
+        title: "🌿 前景穿插运镜法：穿过树枝/花丛切入人像与远山",
+        angle: "运镜动作：将机身贴近树枝缝隙或花海，缓慢向前穿过缝隙再定格在人物身上",
+        fov: "核心设置：4K 60fps/120fps + 标准(去畸变) + 10-bit D-Log M",
+        audio: "转场妙用：出发和结束时故意擦过树叶遮挡全屏，天然形成无缝黑场遮罩转场",
+        tip: "由于 Action 5 Pro 机身只有火柴盒大小，可以轻松穿过单反根本伸不进去的树枝缝隙、竹林或岩石孔洞，让风景画面拥有极强的前景中景远景三层空间感！"
+      },
+      {
+        badge: "PLAY 12 // 情侣/朋友互动第一视角",
+        title: "🤝 磁吸挂脖「牵手奔跑回眸」最具代入感旅拍视角",
+        angle: "佩戴方法：佩戴磁吸挂脖支架，镜头微仰 10°，伸出一只手牵住前方的伴侣",
+        fov: "核心设置：4K (4:3) 60fps + 155° 超广角（把手臂与前方人物全身完整拍入）",
+        audio: "收音配合：收录两人奔跑的脚步声、笑声与海浪声",
+        tip: "双手完全解放，跑动时比手拿自拍杆自然百倍！4:3 画幅能同时保留牵着的手和远方的蓝天大海，是社交平台点赞率最高的情侣旅拍机位！"
+      },
+      {
+        badge: "PLAY 13 // 创意微观巨人国视角",
+        title: "🐜 蚂蚁贴地仰拍法：相机直接立在草地/沙滩/铁轨旁",
+        angle: "摆放方式：无需三脚架，直接把相机立在地面，背后垫一颗小石子让镜头上仰 30°",
+        fov: "核心设置：4K 120fps + 广角 FOV",
+        audio: "画面设计：前景是一朵小野花或贝壳，人物从镜头上方跨步跃过",
+        tip: "超低机位会让前景的小草小花显得像大树一样高大，人物跨过镜头或站在不远处回望天空时，画面构图极具张力且腿长两米！"
+      },
+      {
+        badge: "PLAY 14 // 水花与浪花凝固艺术",
+        title: "💦 1/1000s 高速快门 + 4K/120fps 抓拍泼水与海浪拍岸",
+        angle: "机位设计：逆光或侧逆光方向，对准海浪拍打礁石或人物扬起水花的瞬间",
+        fov: "核心设置：PRO 手动快门锁在 1/500s–1/1000s + 4K 120fps（切勿加 ND 滤镜）",
+        audio: "光线选择：上午 9 点或下午 4 点斜射阳光，每一颗水珠都会折射出钻石般星芒",
+        tip: "拍慢门流水要用慢快门，但拍海浪炸裂和人物戏水扬水花则相反——必须用 1/500s 以上高速快门配合 120fps 慢动作，才能把空中飞舞的万千水珠拍得粒粒分明！"
+      },
+      {
+        badge: "PLAY 15 // 篝火、烟花与仙女棒夜景人像",
+        title: "🎇 SuperNight 暗光人像 + 仙女棒光绘动态拍法",
+        angle: "补光秘诀：让仙女棒或露营暖光灯距离人脸 40cm，照亮眼神光",
+        fov: "核心设置：4K 30fps + 开启 SuperNight 超级夜景 + 标准(去畸变) FOV",
+        audio: "曝光控制：快门不低于 1/100s，ISO 上限设为 3200 或 6400",
+        tip: "以前运动相机晚上拍人像全是噪点没法看，Action 5 Pro 的 1/1.3 英寸大底配合 SuperNight AI 算法，在海边放烟花、露营点篝火时拍人像依然清晰通透！"
+      },
+      {
+        badge: "PLAY 16 // 一键导出动态照片与 4K 高清截帧",
+        title: "🖼️ 视频 4K 截帧当照片用 + DJI Mimo 实况照片 (Live Photo)",
+        angle: "实操心法：不知道摆什么姿势时，直接开 4K 60fps 录像自然走动互动",
+        fov: "核心设置：4K 60fps + 快门 1/240s 以上（保证单帧画面无动态模糊）",
+        audio: "出片方式：在 DJI Mimo App 中直接高画质截帧，或导出 3 秒实况 Live 图发小红书/朋友圈",
+        tip: "很多人面对镜头拍照会僵硬尴尬，用 Action 5 Pro 开 4K 视频边走边聊，只要快门速度够快（1/240s 以上），随便截取其中一帧都是 800 万像素级超自然抓拍大片！"
+      }
+    ];
+
+    const DEFAULT_PLANS = [
+      {
+        id: "p1",
+        title: "【自然风光】清晨湖畔日照金山 + 贴水面 1cm 对称倒影空镜",
+        time: "2026-10-24 06:20-07:10",
+        mount: "磁吸三脚架贴水面低机位",
+        param: "4K 16:9 60fps & 40MP RAW | 1/120s | D-Log M | CPL偏振镜",
+        loc: "湖畔东岸浅滩 · 拍完视频顺手拍 40MP RAW 壁纸",
+        done: true
+      },
+      {
+        id: "p2",
+        title: "【旅拍人像】森林溪流步道漫步回眸 + 1.5m 延长杆贴地升起大景",
+        time: "2026-10-24 09:30-11:00",
+        mount: "1.5m 延长杆 + 智能人物居中",
+        param: "4K 16:9 60fps | 标准(去畸变) + 1.8x变焦 | EV -0.3 | ND8",
+        loc: "森林溪谷木栈道 · 开启 DJI Mic 2 收录溪流与对话",
+        done: false
+      },
+      {
+        id: "p3",
+        title: "【风光慢门】秘境小瀑布丝绸雾化水流长曝光特写",
+        time: "2026-10-24 14:00-15:00",
+        mount: "三脚架固定溪边岩石 (关闭防抖)",
+        param: "40MP RAW & 4K 24fps | 快门 1/2s | ISO 100 | ND64 减光镜",
+        loc: "上游跌水瀑布处",
+        done: false
+      },
+      {
+        id: "p4",
+        title: "【黄金逆光人像】日落山坡金色发丝轮廓光慢动作特写",
+        time: "2026-10-24 17:15-18:00",
+        mount: "手持齐眼高度侧逆光",
+        param: "4K 16:9 120fps | 1/240s | 标准(去畸变) 2x变焦 | WB 5800K",
+        loc: "山顶观景台西侧",
+        done: false
+      }
+    ];
+
+    const DEFAULT_GEARS = [
+      { name: "DJI Osmo Action 主机 (固件已更最新)", checked: true },
+      { name: "耐寒长续航电池 × 3 + 多功能电池收纳盒", checked: true },
+      { name: "V30 / U3 高速 MicroSD 卡 (256GB × 2)", checked: true },
+      { name: "ND8 / ND16 / ND32 / CPL 滤镜套装", checked: false },
+      { name: "磁吸快拆转接件 × 3 (检查锁扣回弹)", checked: true },
+      { name: "头盔下巴支架 / 磁吸挂脖胸带", checked: false },
+      { name: "1.5米碳纤维延长杆 + 管夹固定座", checked: false },
+      { name: "DJI Mic 2 发射器 + 防风毛套 (蓝牙直连)", checked: false },
+      { name: "横竖拍防护框 + 镜头擦镜布", checked: true },
+      { name: "60米防水壳 + 防雾插片 (水下拍摄必带)", checked: false }
+    ];
+
+    const FALLBACK_IMG = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="0.55" stop-color="#151a26"/><stop offset="1" stop-color="#2a160c"/></linearGradient></defs><rect width="1200" height="675" fill="url(#g)"/><circle cx="600" cy="305" r="86" fill="none" stroke="#ff5500" stroke-width="3" opacity="0.8"/><path d="M562 305h76M600 267v76" stroke="#00d2ff" stroke-width="3" opacity="0.8"/><text x="600" y="438" text-anchor="middle" fill="#94a3b8" font-family="Arial,sans-serif" font-size="28">ACTION LAB · OFFLINE PREVIEW</text><text x="600" y="478" text-anchor="middle" fill="#64748b" font-family="Arial,sans-serif" font-size="18">联网后自动加载实拍素材</text></svg>`
+    );
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+    function escapeAttr(value) { return escapeHtml(value); }
+
+    function safeImageUrl(value) {
+      const url = String(value == null ? "" : value).trim();
+      if (!url) return FALLBACK_IMG;
+      if (/^(https?:|data:image\/|\.{0,2}\/)/i.test(url)) return url;
+      return FALLBACK_IMG;
+    }
+
+    function safeParseList(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : fallback;
+      } catch (err) {
+        console.warn("读取本地数据失败，已使用默认数据：", key, err);
+        return fallback;
+      }
+    }
+
+    function safeSetItem(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (err) {
+        console.warn("写入本地数据失败：", key, err);
+        return false;
+      }
+    }
+
+    function normalizeWorks(list) {
+      if (!Array.isArray(list)) return null;
+      return list.filter(item => item && typeof item === "object").map((item, idx) => ({
+        id: item.id ? String(item.id) : "w-restored-" + idx,
+        title: String(item.title || "未命名作品"),
+        category: String(item.category || "未分类"),
+        camera: String(item.camera || "Osmo Action 5 Pro"),
+        fov: String(item.fov || "广角"),
+        img: String(item.img || ""),
+        res: String(item.res || "4K 60fps"),
+        shutter: String(item.shutter || "1/120s"),
+        iso: String(item.iso || "100-800"),
+        color: String(item.color || "10-bit D-Log M"),
+        eis: String(item.eis || "RockSteady+"),
+        mount: String(item.mount || "磁吸快拆支架"),
+        desc: String(item.desc || "自定义录入的 DJI Action 实拍灵感与参数配置。")
+      }));
+    }
+
+    let works = normalizeWorks(safeParseList(STORAGE_WORKS, DEFAULT_WORKS)) || normalizeWorks(DEFAULT_WORKS) || [];
+    let shotPlans = safeParseList(STORAGE_PLANS, DEFAULT_PLANS).filter(item => item && typeof item === "object");
+    let gears = safeParseList(STORAGE_GEARS, DEFAULT_GEARS).filter(item => item && typeof item === "object");
+    let currentFilter = "all";
+
+    // Boot Intro Animation Control
+    function dismissIntro() {
+      const ov = document.getElementById("bootIntroOverlay");
+      if (ov) ov.classList.add("hidden");
+    }
+    function replayIntro() {
+      const ov = document.getElementById("bootIntroOverlay");
+      const bar = ov.querySelector(".vf-bar-fill");
+      bar.style.animation = "none";
+      void bar.offsetWidth;
+      bar.style.animation = "loadProgress 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards";
+      ov.classList.remove("hidden");
+      clearTimeout(window._introAutoTimer);
+      window._introAutoTimer = setTimeout(dismissIntro, 2400);
+    }
+
+    // Multi-Page View Router
+    function switchPage(pageKey, btnEl) {
+      document.querySelectorAll(".page-view").forEach(p => p.classList.remove("active"));
+      const target = document.getElementById("page-" + pageKey);
+      if (target) target.classList.add("active");
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      if (btnEl) btnEl.classList.add("active");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Hero Scene Switcher on Home Page
+    function setHeroScene(idx, chipEl) {
+      const s = HERO_SCENES[idx];
+      if (!s) return;
+      document.querySelectorAll(".scene-chip").forEach(c => c.classList.remove("active"));
+      if (chipEl) chipEl.classList.add("active");
+      const box = document.getElementById("heroBannerBox");
+      box.style.backgroundImage = `linear-gradient(90deg, rgba(7,9,13,0.92) 0%, rgba(7,9,13,0.65) 52%, rgba(7,9,13,0.2) 100%), url('${s.img}')`;
+      document.getElementById("heroSceneBadge").textContent = s.badge;
+      document.getElementById("heroMainTitle").innerHTML = s.title;
+      document.getElementById("heroMainDesc").textContent = s.desc;
+      document.getElementById("hudCamLine").textContent = s.cam;
+      document.getElementById("hudResLine").textContent = s.res;
+      document.getElementById("hudEisLine").textContent = s.eis;
+      document.getElementById("hudExpLine").textContent = s.exp;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toastEl");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(window._tTimer);
+      window._tTimer = setTimeout(() => el.classList.remove("show"), 2500);
+    }
+
+    function filterWorks(cat, btn) {
+      currentFilter = cat;
+      document.querySelectorAll("#categoryFilterBar .pill-btn").forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+      renderWorks();
+    }
+
+    const CATEGORY_ICONS = {
+      "旅拍人像": "👩",
+      "自然风光": "🏔️",
+      "街头与延时": "⏳",
+      "水上水下": "🌊",
+      "极限骑行": "🚵",
+      "冰雪运动": "❄️",
+      "暗光夜景": "🌃"
+    };
+
+    function workParamSummary(w) {
+      return `${w.camera} | ${w.res} | ${w.shutter} | ISO ${w.iso} | ${w.color} | ${w.eis} | ${w.fov}`;
+    }
+
+    function createWorkCardHTML(w) {
+      const title = escapeAttr(w.title);
+      const category = escapeHtml(w.category);
+      const mount = escapeHtml(w.mount);
+      const desc = escapeHtml(w.desc);
+      const camera = escapeHtml(w.camera);
+      const fov = escapeHtml(w.fov);
+      const res = escapeHtml(w.res);
+      const shutter = escapeHtml(w.shutter);
+      const color = escapeHtml(w.color);
+      const eis = escapeHtml(w.eis);
+      return `
+        <div class="work-thumb" data-open-work="1" title="点击查看机位拆解大图详情">
+          <img src="${escapeAttr(safeImageUrl(w.img))}" alt="${title}" loading="lazy" />
+          <div class="work-overlay-top">
+            <span class="cam-badge">📷 ${camera}</span>
+            <span class="fov-badge">${fov}</span>
+          </div>
+        </div>
+        <div class="work-body">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+            <span style="font-size:11.5px; color:#ff7733; font-weight:700; white-space:nowrap;">#${category}</span>
+            <span style="font-size:11.5px; color:var(--text-sub); text-align:right;">🔧 ${mount}</span>
+          </div>
+          <div class="work-title" style="cursor:pointer;" data-open-work="1">${escapeHtml(w.title)}</div>
+          <div class="work-desc">${desc}</div>
+          <div class="spec-grid">
+            <div class="spec-cell">
+              <span class="spec-k">RES / FPS</span>
+              <span class="spec-v">${res}</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-k">SHUTTER / ND</span>
+              <span class="spec-v">${shutter}</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-k">COLOR / ISO</span>
+              <span class="spec-v">${color}</span>
+            </div>
+          </div>
+          <div class="work-footer">
+            <span>增稳：${eis}</span>
+            <div style="display:flex; gap:6px;">
+              <button class="copy-spec-btn" data-action="copy">复制参数</button>
+              <button class="copy-spec-btn" data-action="plan">加入计划</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCategoryFilters() {
+      const bar = document.getElementById("categoryFilterBar");
+      if (!bar) return;
+      const counts = new Map();
+      const categories = [];
+      works.forEach(w => {
+        const cat = String(w.category || "未分类");
+        if (!counts.has(cat)) { counts.set(cat, 0); categories.push(cat); }
+        counts.set(cat, counts.get(cat) + 1);
+      });
+      if (currentFilter !== "all" && !counts.has(currentFilter)) currentFilter = "all";
+      const items = [
+        { cat: "all", label: "全部素材", icon: "🎬", count: works.length },
+        ...categories.map(cat => ({ cat, label: cat, icon: CATEGORY_ICONS[cat] || "🎞️", count: counts.get(cat) }))
+      ];
+      bar.innerHTML = items.map(item => {
+        const active = currentFilter === item.cat ? " active" : "";
+        return `<button class="pill-btn${active}" data-cat="${escapeAttr(item.cat)}">${item.icon} ${escapeHtml(item.label)} (${item.count})</button>`;
+      }).join("");
+      bar.querySelectorAll(".pill-btn").forEach(btn => {
+        btn.addEventListener("click", () => filterWorks(btn.dataset.cat, btn));
+      });
+    }
+
+    function renderWorks() {
+      safeSetItem(STORAGE_WORKS, JSON.stringify(works));
+      renderCategoryFilters();
+      const grid = document.getElementById("worksGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+      const kwEl = document.getElementById("workSearchInput");
+      const kw = kwEl ? kwEl.value.trim().toLowerCase() : "";
+      const list = works.filter(w => {
+        if (currentFilter !== "all" && w.category !== currentFilter) return false;
+        if (kw) {
+          const hay = `${w.title} ${w.category} ${w.desc} ${w.mount} ${w.res} ${w.shutter} ${w.fov}`.toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      });
+
+      list.forEach(w => {
+        const card = document.createElement("div");
+        card.className = "work-card";
+        card.dataset.workId = w.id;
+        card.innerHTML = createWorkCardHTML(w);
+        grid.appendChild(card);
+      });
+
+      const homeGrid = document.getElementById("homeFeaturedGrid");
+      if (homeGrid) {
+        homeGrid.innerHTML = "";
+        const featured = [works[0], works[12], works[2], works[13], works[5], works[14]].filter(Boolean);
+        featured.forEach(w => {
+          const card = document.createElement("div");
+          card.className = "work-card";
+          card.dataset.workId = w.id;
+          card.innerHTML = createWorkCardHTML(w);
+          homeGrid.appendChild(card);
+        });
+      }
+      const statEl = document.getElementById("homeStatWorks");
+      if (statEl) statEl.textContent = `已收录 ${works.length} 组实拍方案`;
+    }
+
+    function onWorkGridClick(event) {
+      const card = event.target.closest(".work-card");
+      if (!card || !card.dataset.workId) return;
+      const workId = card.dataset.workId;
+      const actionEl = event.target.closest("[data-action]");
+      if (actionEl) {
+        event.preventDefault();
+        if (actionEl.dataset.action === "copy") {
+          const w = works.find(item => item.id === workId);
+          if (w) copyText(workParamSummary(w), "已复制该作品完整参数！");
+        } else if (actionEl.dataset.action === "plan") {
+          sendWorkToPlan(workId);
+        }
+        return;
+      }
+      if (event.target.closest("[data-open-work]")) openWorkDetail(workId);
+    }
+
+    function openWorkDetail(workId) {
+      const w = works.find(x => x.id === workId);
+      if (!w) return;
+      const body = document.getElementById("detailModalBody");
+      body.dataset.workId = w.id;
+      body.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span class="hud-pill">#${escapeHtml(w.category)} · 实拍方案拆解</span>
+          <button class="btn" style="padding:4px 10px;" data-detail-action="close">✕</button>
+        </div>
+        <img src="${escapeAttr(safeImageUrl(w.img))}" style="width:100%; height:250px; object-fit:cover; border-radius:12px; margin-bottom:14px;" />
+        <div style="font-size:19px; font-weight:800; margin-bottom:6px;">${escapeHtml(w.title)}</div>
+        <p style="font-size:13.5px; color:var(--text-sub); margin-bottom:14px;">${escapeHtml(w.desc)}</p>
+        <div class="spec-grid" style="margin-bottom:14px;">
+          <div class="spec-cell"><span class="spec-k">机身型号</span><span class="spec-v">${escapeHtml(w.camera)}</span></div>
+          <div class="spec-cell"><span class="spec-k">分辨率/帧率</span><span class="spec-v">${escapeHtml(w.res)}</span></div>
+          <div class="spec-cell"><span class="spec-k">快门与滤镜</span><span class="spec-v">${escapeHtml(w.shutter)}</span></div>
+          <div class="spec-cell"><span class="spec-k">色彩与感光度</span><span class="spec-v">${escapeHtml(w.color)} (ISO ${escapeHtml(w.iso)})</span></div>
+          <div class="spec-cell"><span class="spec-k">防抖与视角</span><span class="spec-v">${escapeHtml(w.eis)} · ${escapeHtml(w.fov)}</span></div>
+          <div class="spec-cell"><span class="spec-k">固定机位</span><span class="spec-v">${escapeHtml(w.mount)}</span></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+          <button class="btn" data-detail-action="copy">📋 复制整套参数</button>
+          <button class="btn btn-orange" data-detail-action="plan">📅 一键转入外拍分镜计划</button>
+        </div>
+      `;
+      document.getElementById("detailModal").classList.add("open");
+    }
+
+    function onDetailModalClick(event) {
+      const btn = event.target.closest("[data-detail-action]");
+      if (!btn) return;
+      const body = document.getElementById("detailModalBody");
+      const workId = body.dataset.workId;
+      const action = btn.dataset.detailAction;
+      if (action === "close") { closeDetailModal(); return; }
+      const w = works.find(item => item.id === workId);
+      if (!w) return;
+      if (action === "copy") {
+        copyText(workParamSummary(w), "已复制完整参数！");
+      } else if (action === "plan") {
+        closeDetailModal();
+        sendWorkToPlan(workId);
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById("detailModal").classList.remove("open");
+    }
+
+    function renderRigs() {
+      const box = document.getElementById("rigsGrid");
+      if (!box) return;
+      box.innerHTML = "";
+      RIGS_DATA.forEach(r => {
+        const card = document.createElement("div");
+        card.className = "panel-card";
+        card.innerHTML = `
+          <span class="hud-pill">${r.badge}</span>
+          <div style="font-size:17.5px; font-weight:800; margin:10px 0 8px;">${r.title}</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; background:var(--bg-surface); padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:10px;">
+            <div><b style="color:var(--dji-cyan);">📐 安装角度：</b>${r.angle}</div>
+            <div><b style="color:#ff884d;">🎞️ 画幅与防抖：</b>${r.fov}</div>
+            <div><b style="color:var(--dji-emerald);">🎙️ 收音配置：</b>${r.audio}</div>
+          </div>
+          <p style="font-size:12.5px; color:var(--text-sub); line-height:1.55;">💡 <b>实战心法：</b>${r.tip}</p>
+        `;
+        box.appendChild(card);
+      });
+    }
+
+    function copyText(txt, toastMsg) {
+      const done = () => showToast(toastMsg || "已复制");
+      const fallback = () => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = txt;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          done();
+        } catch (err) {
+          showToast("复制失败，请手动选择文本复制");
+        }
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(txt).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+    }
+
+    function sendWorkToPlan(workId) {
+      const w = works.find(x => x.id === workId);
+      if (!w) return;
+      document.getElementById("planTitleInput").value = `[同款跟拍] ${w.title}`;
+      document.getElementById("planParamInput").value = `${w.res} | ${w.shutter} | ${w.color} | ${w.eis}`;
+      document.getElementById("planLocInput").value = `机位：${w.mount}`;
+      switchPage("plan", document.querySelectorAll(".nav-btn")[4]);
+      showToast("已切换到「外拍分镜计划」并自动填入参数，点击「添加分镜计划」即可保存！");
+    }
+
+    // ================= Live Viewfinder Preview Engine =================
+    const VFP_SHUTTERS = ["1/4000", "1/2000", "1/1000", "1/500", "1/250", "1/125", "1/60", "1/30", "1/15", "1/8", "1/4", "1/2"];
+    const VFP_SCENES = {
+      portrait: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=85",
+      landscape: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=85",
+      waterfall: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=1200&q=85",
+      photo40m: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85",
+      vlog: "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&w=1200&q=85",
+      dive: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=85",
+      mtb: "https://images.unsplash.com/photo-1544191696-102dbdaeeaa0?auto=format&fit=crop&w=1200&q=85"
+    };
+    const VFP_SCENE_NAMES = {
+      portrait: "旅拍人像",
+      landscape: "自然风光",
+      waterfall: "溪流慢门",
+      photo40m: "40MP 拍照",
+      vlog: "徒步 Vlog",
+      dive: "水下人像",
+      mtb: "运动 POV"
+    };
+    const VFP_ADVICE = {
+      portrait: ["人像要点", "标准去畸变 + 1.5–2x 变焦，人物居中；EV 降 -0.3 保留高光，逆光可让发丝发光。"],
+      landscape: ["风光要点", "10-bit D-Log M + 低 ISO 保留宽容度；用 1.5m 延长杆从贴地前景升起，制造摇臂感。"],
+      waterfall: ["慢门要点", "三脚架固定并关闭防抖，挂 ND32/ND64 把快门压到 1/2–1s，水流会变成丝绸。"],
+      photo40m: ["拍照要点", "切到 40MP RAW，低 ISO + 三脚架；开启 3 秒定时或语音控制抓拍自然神态。"],
+      vlog: ["Vlog 要点", "开启地平线校正与人物居中跟随，边走边讲；用 DJI Mic 2 收录清晰人声。"],
+      dive: ["水下要点", "入水前锁紧防水盖；开启水下色温校正与 RockSteady，利用水压计自动录制。"],
+      mtb: ["运动 POV 要点", "4:3 画幅 + 155° 超广角保留车把；1/120s 快门兼顾速度感与动态模糊。"]
+    };
+    const VFP_LIGHT_BASE = { sunny: 5, golden: 3, cloudy: 2, night: -4, underwater: -1 };
+    const VFP_TARGET = { cinema: 5, slowmo: 4, straight: 5 };
+    const VFP_TINT = {
+      sunny: "rgba(255,236,190,0.20)",
+      golden: "rgba(255,150,60,0.32)",
+      cloudy: "rgba(150,175,200,0.20)",
+      night: "rgba(30,40,110,0.58)",
+      underwater: "rgba(0,120,180,0.44)"
+    };
+
+    const VFP_ISO_STEPS = [100, 200, 400, 800, 1600, 3200, 6400, 12800];
+    let vfpState = {
+      ndStops: null, cpl: false, lut: true, motion: true, shutterOverride: null,
+      ev: 0, iso: 100, wb: 5600, sharp: 0, nr: 0,
+      fov: "wide", ratio: "16:9", eis: "rsplus", color: "dlog", grid: true
+    };
+    let vfpManual = false;
+    let vfpRenderPending = false;
+
+    function vfpShutterSeconds(idx) {
+      const txt = VFP_SHUTTERS[Math.max(0, Math.min(11, idx))] || "1/125";
+      return 1 / Number(txt.split("/")[1] || 125);
+    }
+
+    function vfpCurrentRecStops() {
+      const lightEl = document.getElementById("calcLight");
+      const styleEl = document.getElementById("calcStyle");
+      const light = lightEl ? lightEl.value : "golden";
+      const style = styleEl ? styleEl.value : "cinema";
+      const sIdx = vfpState.shutterOverride === null
+        ? (VFP_TARGET[style] !== undefined ? VFP_TARGET[style] : 5)
+        : vfpState.shutterOverride;
+      return recommendNdStops(light, style, vfpState.iso, sIdx);
+    }
+
+    function vfpFreezeND() {
+      if (vfpState.ndStops === null) vfpState.ndStops = vfpCurrentRecStops();
+    }
+
+    function vfpNearestND(need) {
+      const allowed = [0, 3, 4, 5, 6];
+      let best = 0, bestDist = Infinity;
+      allowed.forEach(v => {
+        const d = Math.abs(v - need);
+        if (d < bestDist) { bestDist = d; best = v; }
+      });
+      return best;
+    }
+
+    function recommendNdStops(light, style, iso = 100, shutterIdx = null) {
+      const idx = shutterIdx === null
+        ? (VFP_TARGET[style] !== undefined ? VFP_TARGET[style] : 5)
+        : shutterIdx;
+      const need = (VFP_LIGHT_BASE[light] !== undefined ? VFP_LIGHT_BASE[light] : 0)
+        + Math.log2(iso / 100)
+        + Math.log2(vfpShutterSeconds(idx) * 125);
+      return vfpNearestND(Math.max(0, need));
+    }
+
+    function vfpNDLabel(stops) {
+      return stops > 0 ? ("ND" + Math.pow(2, stops)) : "无滤镜";
+    }
+
+    function setTextSafe(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+
+    function updatePreviewSourceBadge() {
+      const badge = document.getElementById("vfpSourceBadge");
+      if (!badge) return;
+      badge.textContent = vfpManual ? "手动调整 · 下方推荐不会覆盖" : "预设联动";
+      badge.classList.toggle("manual", vfpManual);
+    }
+
+    function markPreviewManual() {
+      vfpManual = true;
+      updatePreviewSourceBadge();
+    }
+
+    function schedulePreviewRender() {
+      if (vfpRenderPending) return;
+      vfpRenderPending = true;
+      requestAnimationFrame(() => {
+        vfpRenderPending = false;
+        renderPreview();
+      });
+    }
+
+    function renderPreview() {
+      const sportEl = document.getElementById("calcSport");
+      const lightEl = document.getElementById("calcLight");
+      const styleEl = document.getElementById("calcStyle");
+      const modelEl = document.getElementById("calcModel");
+      if (!sportEl || !lightEl || !styleEl || !modelEl) return;
+
+      const sport = sportEl.value;
+      const light = lightEl.value;
+      const style = styleEl.value;
+      const model = modelEl.value;
+
+      const shutterIdx = vfpState.shutterOverride === null
+        ? (VFP_TARGET[style] !== undefined ? VFP_TARGET[style] : 5)
+        : Math.max(0, Math.min(11, vfpState.shutterOverride));
+      const shutterText = VFP_SHUTTERS[shutterIdx];
+      const lightBase = VFP_LIGHT_BASE[light] !== undefined ? VFP_LIGHT_BASE[light] : 0;
+      const isoGain = Math.log2(vfpState.iso / 100);
+      const shutterGain = Math.log2(vfpShutterSeconds(shutterIdx) * 125);
+      const cplLoss = vfpState.cpl ? 1 : 0;
+      const neededStops = lightBase + isoGain + shutterGain;
+      const recStops = recommendNdStops(light, style, vfpState.iso, shutterIdx);
+      const stops = vfpState.ndStops === null ? recStops : vfpState.ndStops;
+      const totalStops = stops + cplLoss;
+      const evOffset = neededStops + vfpState.ev - totalStops;
+
+      // Scene image
+      const src = VFP_SCENES[sport] || VFP_SCENES.portrait;
+      ["vfpImg", "vfpGhostA", "vfpGhostB"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.getAttribute("src") !== src) el.setAttribute("src", src);
+        if (el) el.style.objectPosition = sport === "portrait" ? "center 28%" : "center center";
+      });
+
+      // Color + exposure pipeline simulation
+      let filters = [];
+      const brightness = Math.max(0.45, Math.min(1.95, Math.pow(2, evOffset * 0.3)));
+      filters.push("brightness(" + brightness.toFixed(3) + ")");
+      if (vfpState.color === "dlog") {
+        if (vfpState.lut) filters.push("saturate(1.12)", "contrast(1.06)");
+        else filters.push("saturate(0.4)", "contrast(0.74)");
+      } else if (vfpState.color === "hlg") {
+        filters.push("saturate(0.9)", "contrast(0.96)");
+      } else {
+        filters.push("saturate(1.14)", "contrast(1.08)");
+      }
+      if (vfpState.cpl) filters.push("saturate(1.2)", "contrast(1.1)");
+      if (vfpState.sharp !== 0) filters.push("contrast(" + (1 + vfpState.sharp * 0.055).toFixed(2) + ")");
+      if (vfpState.nr > 0) filters.push("blur(" + (vfpState.nr * 0.28).toFixed(2) + "px)");
+      if (light === "underwater") filters.push("hue-rotate(-10deg)");
+      const filterStr = filters.join(" ");
+
+      const mainImg = document.getElementById("vfpImg");
+      if (mainImg) mainImg.style.filter = filterStr;
+
+      // Motion blur ghosts
+      const motionAmt = vfpState.motion ? Math.min(1, Math.max(0, (shutterIdx - 3) / 6)) : 0;
+      const ghostA = document.getElementById("vfpGhostA");
+      const ghostB = document.getElementById("vfpGhostB");
+      if (ghostA) {
+        ghostA.style.opacity = (motionAmt * 0.46).toFixed(2);
+        ghostA.style.filter = "blur(" + (motionAmt * 6).toFixed(1) + "px) " + filterStr;
+        ghostA.style.transform = "translateX(" + (-motionAmt * 12).toFixed(1) + "px) scale(1.01)";
+      }
+      if (ghostB) {
+        ghostB.style.opacity = (motionAmt * 0.3).toFixed(2);
+        ghostB.style.filter = "blur(" + (motionAmt * 10).toFixed(1) + "px) " + filterStr;
+        ghostB.style.transform = "translateX(" + (motionAmt * 16).toFixed(1) + "px) scale(1.02)";
+      }
+
+      // Light tint
+      const tint = document.getElementById("vfpTint");
+      if (tint) tint.style.background = VFP_TINT[light] || "transparent";
+
+      // White balance tint
+      const wbTint = document.getElementById("vfpWbTint");
+      if (wbTint) {
+        const wbDelta = vfpState.wb - 5600;
+        const wbAlpha = Math.min(0.4, Math.abs(wbDelta) / 2900 * 0.4);
+        wbTint.style.background = wbDelta > 0
+          ? "rgba(255,170,80," + wbAlpha.toFixed(2) + ")"
+          : (wbDelta < 0 ? "rgba(80,160,255," + wbAlpha.toFixed(2) + ")" : "transparent");
+      }
+
+      // FOV zoom + stabilization shake
+      const media = document.getElementById("vfpMedia");
+      if (media) {
+        const zoomMap = { ultrawide: 1, wide: 1.06, standard: 1.16, zoom2: 1.38 };
+        media.style.setProperty("--vfp-zoom", zoomMap[vfpState.fov] || 1.1);
+        media.classList.remove("shake-off", "shake-mild");
+        if (vfpState.eis === "off") media.classList.add("shake-off");
+        else if (vfpState.eis === "rs") media.classList.add("shake-mild");
+      }
+
+      // Aspect ratio + grid + high ISO noise
+      const stage = document.getElementById("vfpStage");
+      if (stage) stage.className = "vfp-stage ratio-" + vfpState.ratio.replace(":", "-");
+      const grid = document.getElementById("vfpGrid");
+      if (grid) grid.style.display = vfpState.grid ? "" : "none";
+      const noiseEl = document.getElementById("vfpNoise");
+      if (noiseEl) noiseEl.style.opacity = Math.min(0.5, Math.max(0, Math.log2(vfpState.iso / 100) * 0.07)).toFixed(2);
+
+      // Exposure delta (stops)
+      const delta = evOffset;
+      const expo = document.getElementById("vfpExposure");
+      const alpha = Math.min(0.5, Math.abs(delta) * 0.13);
+      if (expo) {
+        expo.style.background = delta > 0
+          ? "rgba(255,246,220," + alpha.toFixed(2) + ")"
+          : (delta < 0 ? "rgba(4,8,15," + alpha.toFixed(2) + ")" : "transparent");
+      }
+
+      const pill = document.getElementById("vfpExpoPill");
+      if (pill) {
+        pill.classList.remove("warn", "bad");
+        if (delta > 0.2) {
+          pill.textContent = "过曝 +" + delta.toFixed(1) + " EV";
+          pill.classList.add("warn");
+        } else if (delta < -0.2) {
+          pill.textContent = "欠曝 " + delta.toFixed(1) + " EV";
+          pill.classList.add("bad");
+        } else {
+          pill.textContent = "曝光正常";
+        }
+      }
+
+      // EV meter needle
+      const needle = document.getElementById("vfpMeterNeedle");
+      if (needle) {
+        const pos = Math.max(0, Math.min(100, (delta + 3) / 6 * 100));
+        needle.style.left = pos.toFixed(1) + "%";
+        needle.style.background = Math.abs(delta) <= 0.2 ? "#f8fafc" : (delta > 0 ? "#f59e0b" : "#60a5fa");
+      }
+      setTextSafe("vfpEvText", "EV " + (delta >= 0 ? "+" : "") + delta.toFixed(1));
+      setTextSafe("vfpEvState", delta > 0.2 ? "过曝" : (delta < -0.2 ? "欠曝" : "曝光准确"));
+
+      // HUD
+      const isPhoto = sport === "photo40m";
+      const fps = style === "slowmo" ? 120 : 60;
+      const resLabel = isPhoto ? "40MP PHOTO" : ("4K " + fps);
+      const modeLabel = vfpState.ratio + " · " + (isPhoto ? "RAW" : fps + "fps");
+      const setText = setTextSafe;
+
+      setText("vfpHudRes", resLabel);
+      setText("vfpHudMode", modeLabel);
+      setText("vfpHudModel", model.toUpperCase());
+
+      const eisLabels = { off: "EIS OFF", rs: "ROCKSTEADY", rsplus: "ROCKSTEADY+", horizon: "HORIZON 360°", balance: "HORIZON ±45°" };
+      setText("vfpHudEis", eisLabels[vfpState.eis] || "ROCKSTEADY+");
+      setText("vfpHudEv", "EV " + (delta >= 0 ? "+" : "") + delta.toFixed(1));
+      setText("vfpHudShutter", shutterText);
+      setText("vfpHudIso", "ISO " + vfpState.iso);
+      setText("vfpHudNd", vfpNDLabel(stops) + (vfpState.cpl ? " + CPL" : "") + (stops ? " · " + stops + "档" : ""));
+      setText("vfpHudWb", "WB " + vfpState.wb + "K");
+      const fovLabels = { ultrawide: "FOV 155°", wide: "FOV WIDE", standard: "FOV STD", zoom2: "FOV 2X" };
+      setText("vfpHudFov", fovLabels[vfpState.fov] || "FOV WIDE");
+
+      const colorName = vfpState.color === "dlog"
+        ? (vfpState.lut ? "D-Log M" : "D-Log M 灰片")
+        : (vfpState.color === "hlg" ? "10-bit HLG" : "Normal");
+      setText("vfpBadgeMode", isPhoto ? "40MP PHOTO" : ("4K " + fps + "fps"));
+      setText("vfpBadgeColor", colorName);
+      setText("vfpBadgeNd", vfpNDLabel(stops) + (vfpState.cpl ? " + CPL" : ""));
+
+      // Side readouts
+      setText("vfpShutterText", shutterText + "s");
+      setText("vfpNdHint", "推荐 " + vfpNDLabel(recStops));
+      setText("vfpLightPct", (100 / Math.pow(2, totalStops)).toFixed(totalStops >= 4 ? 1 : 0) + "%");
+      setText("vfpEvVal", vfpState.ev.toFixed(1));
+      setText("vfpIsoVal", String(vfpState.iso));
+      setText("vfpWbVal", vfpState.wb + "K");
+      setText("vfpSharpVal", String(vfpState.sharp));
+      setText("vfpNrVal", String(vfpState.nr));
+      const fovNames = { ultrawide: "155° 超广角", wide: "广角 Wide", standard: "标准去畸变", zoom2: "2x 变焦" };
+      setText("vfpFovText", fovNames[vfpState.fov] || "广角 Wide");
+      setText("vfpRatioText", vfpState.ratio);
+
+      const blurLabel = motionAmt < 0.05 ? "无拖影" : motionAmt < 0.3 ? "轻微" : motionAmt < 0.6 ? "中等" : motionAmt < 0.85 ? "强" : "极强";
+      setText("vfpBlurPct", blurLabel);
+      const colorLabel = vfpState.color === "dlog" ? (vfpState.lut ? "D-Log M + LUT" : "D-Log M 灰片") : (vfpState.color === "hlg" ? "HLG" : "Normal");
+      setText("vfpColorNote", vfpState.cpl ? colorLabel + " / CPL" : colorLabel);
+      setText("vfpSceneNote", VFP_SCENE_NAMES[sport] || "自定义");
+
+      const advice = VFP_ADVICE[sport];
+      if (advice) {
+        const advEl = document.getElementById("vfpAdvice");
+        if (advEl) advEl.innerHTML = "<b>" + advice[0] + "：</b>" + advice[1];
+      }
+
+      const range = document.getElementById("vfpShutterRange");
+      if (range) range.value = shutterIdx;
+
+      // ND button + filter card active state
+      document.querySelectorAll(".vfp-nd-btn").forEach(btn => {
+        btn.classList.toggle("active", Number(btn.getAttribute("data-nd")) === stops);
+      });
+      document.querySelectorAll(".vfp-filter-card").forEach(card => {
+        card.classList.toggle("active", Number(card.getAttribute("data-nd")) === stops);
+      });
+
+      // Warning message
+      const warn = document.getElementById("vfpWarn");
+      if (warn) {
+        warn.classList.remove("warn", "bad");
+        if (Math.abs(delta) <= 0.2) {
+          warn.textContent = "✅ 曝光准确：ISO " + vfpState.iso + " · " + shutterText + "s · " + vfpNDLabel(stops) + (vfpState.cpl ? " + CPL" : "") + "，画面层次完整。";
+        } else if (delta > 0) {
+          warn.classList.add("warn");
+          warn.textContent = "⚠️ 过曝 +" + delta.toFixed(1) + " EV：进光量偏多，高光可能溢出。可加快快门、降低 ISO，或换强一档 ND。";
+        } else {
+          warn.classList.add("bad");
+          warn.textContent = "⚠️ 欠曝 " + delta.toFixed(1) + " EV：进光量不足，暗部可能死黑。可放慢快门、提高 ISO，或换弱一档 ND。";
+        }
+      }
+    }
+
+    function setPreviewND(stops) {
+      markPreviewManual();
+      vfpState.ndStops = stops;
+      renderPreview();
+      showToast("已切换预览：" + vfpNDLabel(stops) + "（" + stops + " 档减光）");
+    }
+
+    function onPreviewShutterInput(val) {
+      markPreviewManual();
+      vfpFreezeND();
+      vfpState.shutterOverride = Number(val);
+      schedulePreviewRender();
+    }
+
+    function onPreviewIso(val) {
+      markPreviewManual();
+      vfpFreezeND();
+      vfpState.iso = VFP_ISO_STEPS[Number(val)] || 100;
+      schedulePreviewRender();
+    }
+
+    function onPreviewEv(val) {
+      markPreviewManual();
+      vfpState.ev = Number(val);
+      schedulePreviewRender();
+    }
+
+    function onPreviewWb(val) {
+      markPreviewManual();
+      vfpState.wb = Number(val);
+      schedulePreviewRender();
+    }
+
+    function onPreviewSharp(val) {
+      markPreviewManual();
+      vfpState.sharp = Number(val);
+      schedulePreviewRender();
+    }
+
+    function onPreviewNr(val) {
+      markPreviewManual();
+      vfpState.nr = Number(val);
+      schedulePreviewRender();
+    }
+
+    function onPreviewFov(val) {
+      markPreviewManual();
+      vfpState.fov = val;
+      renderPreview();
+    }
+
+    function onPreviewRatio(val, btn) {
+      markPreviewManual();
+      vfpState.ratio = val;
+      document.querySelectorAll("#vfpRatioSeg button").forEach(b => b.classList.toggle("on", b === btn));
+      renderPreview();
+    }
+
+    function onPreviewEis(val) {
+      markPreviewManual();
+      vfpState.eis = val;
+      renderPreview();
+    }
+
+    function onPreviewColor(val) {
+      markPreviewManual();
+      vfpState.color = val;
+      renderPreview();
+    }
+
+    function quickPreviewEv(v) {
+      if (v === "reset") {
+        syncPreviewFromPreset();
+      } else {
+        markPreviewManual();
+        vfpState.ev = Number(v);
+      }
+      const el = document.getElementById("vfpEvRange");
+      if (el) el.value = vfpState.ev;
+      renderPreview();
+    }
+
+    function togglePreviewGrid() {
+      markPreviewManual();
+      vfpState.grid = !vfpState.grid;
+      const btn = document.getElementById("vfpGridToggle");
+      if (btn) btn.classList.toggle("on", vfpState.grid);
+      renderPreview();
+    }
+
+    function togglePreviewCpl() {
+      markPreviewManual();
+      vfpState.cpl = !vfpState.cpl;
+      const btn = document.getElementById("vfpCplToggle");
+      if (btn) btn.classList.toggle("on", vfpState.cpl);
+      renderPreview();
+    }
+
+    function togglePreviewLut() {
+      markPreviewManual();
+      vfpState.lut = !vfpState.lut;
+      const btn = document.getElementById("vfpLutToggle");
+      if (btn) btn.classList.toggle("on", vfpState.lut);
+      renderPreview();
+    }
+
+    function togglePreviewMotion() {
+      markPreviewManual();
+      vfpState.motion = !vfpState.motion;
+      const btn = document.getElementById("vfpMotionToggle");
+      if (btn) btn.classList.toggle("on", vfpState.motion);
+      renderPreview();
+    }
+
+    function syncPreviewFromPreset() {
+      const lightEl = document.getElementById("calcLight");
+      const sportEl = document.getElementById("calcSport");
+      const styleEl = document.getElementById("calcStyle");
+      if (!lightEl || !sportEl || !styleEl) return;
+
+      const light = lightEl.value;
+      const sport = sportEl.value;
+      const style = styleEl.value;
+      const isoDefault = { sunny: 100, golden: 100, cloudy: 100, night: 1600, underwater: 200 }[light] || 100;
+      const wbDefault = { sunny: 5500, golden: 5800, cloudy: 6000, night: 4800, underwater: 5000 }[light] || 5600;
+      const fovDefault = { portrait: "standard", landscape: "wide", waterfall: "standard", photo40m: "wide", vlog: "standard", dive: "wide", mtb: "ultrawide" }[sport] || "wide";
+      const eisDefault = { portrait: "rsplus", landscape: "horizon", waterfall: "off", photo40m: "off", vlog: "balance", dive: "rs", mtb: "rsplus" }[sport] || "rsplus";
+      const shutterIdx = VFP_TARGET[style] !== undefined ? VFP_TARGET[style] : 5;
+
+      vfpState.ndStops = null;
+      vfpState.shutterOverride = shutterIdx;
+      vfpState.ev = 0;
+      vfpState.iso = isoDefault;
+      vfpState.wb = wbDefault;
+      vfpState.sharp = 0;
+      vfpState.nr = 0;
+      vfpState.fov = fovDefault;
+      vfpState.ratio = "16:9";
+      vfpState.eis = eisDefault;
+      vfpState.color = "dlog";
+      vfpState.grid = true;
+      vfpState.cpl = false;
+      vfpState.lut = true;
+      vfpState.motion = true;
+
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      setVal("vfpEvRange", 0);
+      setVal("vfpIsoRange", VFP_ISO_STEPS.indexOf(isoDefault));
+      setVal("vfpShutterRange", shutterIdx);
+      setVal("vfpWbRange", wbDefault);
+      setVal("vfpSharpRange", 0);
+      setVal("vfpNrRange", 0);
+      const fovSel = document.getElementById("vfpFovSelect");
+      if (fovSel) fovSel.value = fovDefault;
+      const eisSel = document.getElementById("vfpEisSelect");
+      if (eisSel) eisSel.value = eisDefault;
+      const colorSel = document.getElementById("vfpColorSelect");
+      if (colorSel) colorSel.value = "dlog";
+      document.querySelectorAll("#vfpRatioSeg button").forEach(b => b.classList.toggle("on", b.getAttribute("data-ratio") === "16:9"));
+      const cplBtn = document.getElementById("vfpCplToggle");
+      if (cplBtn) cplBtn.classList.remove("on");
+      const lutBtn = document.getElementById("vfpLutToggle");
+      if (lutBtn) lutBtn.classList.add("on");
+      const motionBtn = document.getElementById("vfpMotionToggle");
+      if (motionBtn) motionBtn.classList.add("on");
+      const gridBtn = document.getElementById("vfpGridToggle");
+      if (gridBtn) gridBtn.classList.add("on");
+      vfpManual = false;
+      updatePreviewSourceBadge();
+    }
+
+    function updateParamCalc() {
+      const sport = document.getElementById("calcSport").value;
+      const light = document.getElementById("calcLight").value;
+      const style = document.getElementById("calcStyle").value;
+      const model = document.getElementById("calcModel").value;
+
+      let res = "4K (4:3) 60fps";
+      let shutter = "1/120s";
+      let iso = "100 - 800";
+      let nd = vfpNDLabel(recommendNdStops(light, style, 100));
+      let eis = "RockSteady 3.0+";
+      let fov = "155° 超广角";
+      let color = "10-bit D-Log M";
+      let wb = "5600K | -1 / -1";
+      let tip = "使用 4:3 全画幅配合 155° 超广角，可在后期自由裁切 16:9 横屏与 9:16 竖屏，最大化第一视角张力。";
+
+      if (style === "slowmo") {
+        res = "4K (16:9) 120fps";
+        shutter = "1/240s - 1/500s";
+      } else if (style === "straight") {
+        color = "10-bit 标准 (Normal)";
+      }
+
+      if (light === "sunny") {
+        iso = "100 - 400";
+        wb = "5500K | -1 / -1";
+      } else if (light === "golden") {
+        iso = "100 - 800";
+        wb = "5800K (暖调) | -1 / -1";
+      } else if (light === "cloudy") {
+        shutter = "Auto (最低 1/200s)";
+        iso = "100 - 1600";
+        wb = "5600K | -1 / 0";
+        tip = "林道明暗交替剧烈时，建议拆下 ND 滤镜并将快门设为固定 1/200s 以上，防止暗处快门变慢引发防抖果冻重影。";
+      } else if (light === "night") {
+        res = "4K (16:9) 30fps / 60fps";
+        shutter = "1/100s - 1/120s";
+        nd = "严禁装 ND 滤镜";
+        iso = model.includes("5 Pro") ? "100 - 6400 (开启 SuperNight)" : "100 - 3200";
+        color = "标准色彩 (暗光噪点更低)";
+        wb = "4600K | -1 / 0";
+        tip = "夜景运动防抖的核心铁律：快门不能低于 1/100s！宁可拉高 ISO 或开启 Action 5 Pro 超级夜景，也不要用慢快门，否则路灯会出现严重重影。";
+      } else if (light === "underwater") {
+        nd = "无滤镜 (加装防水壳)";
+        shutter = "Auto";
+        iso = "100 - 1600";
+        fov = "广角 (水中折射天然增广)";
+        wb = "自动水下色温传感器";
+        tip = "下水前务必检查电池仓与 USB-C 保护盖红标完全锁紧；深潜超过 20m 请加装官方 60m 防水壳与防雾插片。";
+      }
+
+      if (sport === "vlog") {
+        eis = "HorizonBalancing (±45°)";
+        fov = "标准 (去畸变)";
+      } else if (sport === "dive") {
+        eis = "RockSteady 3.0+ / 水下色彩校正";
+        fov = "广角 (水下折射补偿)";
+        tip = "【水下人像要领】入水前锁紧防水盖并装防雾插片；开启水下白平衡与 RockSteady，尽量顺光拍摄，避免悬浮颗粒被逆光打成噪点。";
+      } else if (sport === "mtb") {
+        eis = "RockSteady 3.0+ / HorizonSteady";
+        fov = "155° 超广角";
+        res = style === "slowmo" ? "4K (16:9) 120fps" : "4K (4:3) 60fps";
+        shutter = style === "slowmo" ? "1/240s - 1/500s" : "1/120s";
+        tip = "【山地骑行 POV】头盔下巴或胸带机位，4:3 画幅保留车把与前方落差；1/120s 快门兼顾速度感与动态模糊，剧烈颠簸时开 HorizonSteady。";
+      }
+
+      if (sport === "portrait") {
+        res = style === "slowmo" ? "4K (16:9) 120fps" : "4K (16:9) 60fps";
+        fov = "标准(去畸变) + 1.5x~2x变焦";
+        eis = "RockSteady+ / 人物居中跟随";
+        wb = light === "night" ? "4800K | -1 / 0" : "5600K (自然肤色) | EV -0.3";
+        tip = "【人像防变形秘诀】切勿使用超广角贴脸拍！开启「标准(去畸变)」并放大 1.5x–2x，人物站画面中央，曝光补偿降 -0.3EV 肤色最通透。";
+      } else if (sport === "landscape") {
+        res = "4K (16:9) 60fps";
+        fov = "广角 (Wide) / 标准(去畸变)";
+        eis = "HorizonSteady 地平线增稳";
+        iso = "100 - 400 (锁定低感高纯净度)";
+        color = "10-bit D-Log M (13.5档宽容度)";
+        tip = "【自然风光大片要领】使用 10-bit D-Log M 最大化保留天空云层高光与山体暗部细节；用 1.5m 延长杆从贴地花草缓慢升起可拍出无人机摇臂感。";
+      } else if (sport === "waterfall") {
+        res = "4K (16:9) 24fps / 30fps 或 40MP RAW";
+        shutter = "1/4s ~ 1s 慢门长曝光";
+        iso = "100 (锁死最低 ISO)";
+        nd = "ND64 / ND32 减光镜";
+        eis = "关闭防抖 (必须固定在三脚架)";
+        fov = "标准 (去畸变)";
+        tip = "【溪流丝绸慢门要领】将相机固定在溪边石头/三脚架上，关闭 EIS 防抖，挂上 ND64 滤镜并将快门调慢至 1/2 秒，湍急水流瞬间变成白色丝绸！";
+      } else if (sport === "photo40m") {
+        res = "40MP (7296×5472) 8K 静态照片";
+        shutter = light === "night" ? "2s ~ 15s (脚架夜景)" : "Auto / 1/500s";
+        iso = "100 - 400";
+        nd = "CPL 偏振镜 / 无滤镜";
+        eis = "静态拍照模式 (支持定时/语音拍)";
+        fov = "标准(去畸变) / 广角";
+        color = "RAW + JPEG (后期空间拉满)";
+        tip = "【4000万像素高画质拍照】Action 5 Pro 的 40MP RAW 照片解析力极高，拍风光建议开启 RAW 格式，拍人像可开启 3秒连拍或语音控制抓拍自然神态。";
+      }
+
+      const sportNames = {
+        portrait: "电影感旅拍人像",
+        landscape: "自然风光大景",
+        waterfall: "溪流瀑布慢门长曝",
+        photo40m: "4000万像素高清拍照",
+        mtb: "极限运动 POV",
+        dive: "海岛半水下/深潜人像",
+        vlog: "徒步旅行 Vlog"
+      };
+      document.getElementById("hudPresetName").textContent = `🎯 ${model} · ${sportNames[sport] || sport} 最优参数方案`;
+      document.getElementById("hudRes").textContent = res;
+      document.getElementById("hudShutter").textContent = shutter;
+      document.getElementById("hudIso").textContent = iso;
+      document.getElementById("hudNd").textContent = nd;
+      document.getElementById("hudEis").textContent = eis;
+      document.getElementById("hudFov").textContent = fov;
+      document.getElementById("hudColor").textContent = color;
+      document.getElementById("hudWb").textContent = wb;
+      document.getElementById("hudTip").textContent = "💡 实战要领：" + tip;
+
+      if (!vfpManual) syncPreviewFromPreset();
+      updatePreviewSourceBadge();
+      renderPreview();
+    }
+
+    function applyCalcToPreview() {
+      vfpManual = false;
+      syncPreviewFromPreset();
+      updatePreviewSourceBadge();
+      renderPreview();
+      showToast("已把下方推荐参数应用到取景器");
+    }
+
+    function applyPreviewToPlanner() {
+      const sport = document.getElementById("calcSport").value;
+      const style = document.getElementById("calcStyle").value;
+      const model = document.getElementById("calcModel").value;
+      const shutterIdx = vfpState.shutterOverride === null
+        ? (VFP_TARGET[style] !== undefined ? VFP_TARGET[style] : 5)
+        : Math.max(0, Math.min(11, vfpState.shutterOverride));
+      const shutterText = VFP_SHUTTERS[shutterIdx];
+      const stops = vfpState.ndStops === null ? vfpCurrentRecStops() : vfpState.ndStops;
+      const ndText = vfpNDLabel(stops) + (vfpState.cpl ? " + CPL" : "");
+      const fps = style === "slowmo" ? 120 : 60;
+      const res = sport === "photo40m" ? `40MP RAW (${vfpState.ratio})` : `4K ${vfpState.ratio} ${fps}fps`;
+      const colorMap = { dlog: "10-bit D-Log M", hlg: "10-bit HLG", normal: "Normal" };
+      const eisMap = {
+        off: "EIS OFF（固定机位）", rs: "RockSteady", rsplus: "RockSteady 3.0+",
+        horizon: "HorizonSteady 360°", balance: "地平线校正 ±45°"
+      };
+      const fovMap = { ultrawide: "155° 超广角", wide: "广角", standard: "标准(去畸变)", zoom2: "2x 变焦" };
+      const evText = `EV ${vfpState.ev >= 0 ? "+" : ""}${Number(vfpState.ev).toFixed(1)}`;
+      const param = `${res} | ${shutterText}s | ISO ${vfpState.iso} | ${ndText} | WB ${vfpState.wb}K | ${evText} | ${colorMap[vfpState.color] || "D-Log M"} | ${eisMap[vfpState.eis] || "RockSteady+"} | ${fovMap[vfpState.fov] || "广角"}`;
+      document.getElementById("planTitleInput").value = `【取景器参数】${VFP_SCENE_NAMES[sport] || sport} · ${vfpState.ratio} · ${model}`;
+      document.getElementById("planParamInput").value = param;
+      switchPage("plan", document.querySelectorAll(".nav-btn")[4]);
+      showToast("已把当前取景器参数填入分镜计划，点「添加分镜计划」保存");
+    }
+
+    function applyCalcToPlanner() {
+      const presetName = document.getElementById("hudPresetName").textContent.replace("🎯 ", "");
+      const res = document.getElementById("hudRes").textContent;
+      const shut = document.getElementById("hudShutter").textContent;
+      const nd = document.getElementById("hudNd").textContent;
+      const color = document.getElementById("hudColor").textContent;
+      const eis = document.getElementById("hudEis").textContent;
+      const wb = document.getElementById("hudWb").textContent;
+
+      document.getElementById("planTitleInput").value = presetName + " 实拍测试镜头";
+      document.getElementById("planParamInput").value = `${res} | ${shut} | ${nd} | ${color} | ${eis} | ${wb}`;
+      switchPage("plan", document.querySelectorAll(".nav-btn")[4]);
+      showToast("已切换到「外拍分镜计划」并填入推导参数！");
+    }
+
+    function onLutSlide(val) {
+      const pct = Math.max(5, Math.min(95, Number(val) || 50));
+      document.getElementById("lutLeftWrap").style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+      document.getElementById("lutDivider").style.left = pct + "%";
+      document.getElementById("lutSliderLabel").textContent = `拖动滑块对比 (${pct}%)`;
+    }
+
+    function renderShotPlans() {
+      safeSetItem(STORAGE_PLANS, JSON.stringify(shotPlans));
+      const box = document.getElementById("shotPlanList");
+      box.innerHTML = "";
+      shotPlans.forEach((p, idx) => {
+        const div = document.createElement("div");
+        div.className = "shot-item" + (p.done ? " done" : "");
+        div.innerHTML = `
+          <div style="display:flex; align-items:flex-start; gap:12px; flex:1;">
+            <input type="checkbox" style="width:18px;height:18px;margin-top:3px;accent-color:#ff5500;cursor:pointer;" ${p.done ? "checked" : ""} onchange="toggleShotPlan(${idx})" />
+            <div style="flex:1;">
+              <div class="shot-title" style="font-size:14.5px; font-weight:700;">${escapeHtml(p.title)}</div>
+              <div class="shot-meta-tags">
+                <span class="shot-tag orange">⏰ ${escapeHtml(p.time)}</span>
+                <span class="shot-tag cyan">🔧 ${escapeHtml(p.mount)}</span>
+                <span class="shot-tag">⚙️ ${escapeHtml(p.param)}</span>
+                ${p.loc ? `<span class="shot-tag">📍 ${escapeHtml(p.loc)}</span>` : ""}
+              </div>
+            </div>
+          </div>
+          <button class="btn" style="padding:4px 10px; font-size:12px;" onclick="delShotPlan(${idx})">删除</button>
+        `;
+        box.appendChild(div);
+      });
+      const pendingCnt = shotPlans.filter(x => !x.done).length;
+      const statPlanEl = document.getElementById("homeStatPlans");
+      if (statPlanEl) statPlanEl.textContent = `待拍分镜 ${pendingCnt} 项`;
+    }
+
+    const PLAN_TEMPLATES = {
+      mountain: [
+        { id: "m1", title: "【川西风光 01】清晨垭口日照金山 + 3秒间隔 4K RAW 云海延时", time: "06:15-07:10", mount: "重型三脚架固定 (关闭防抖)", param: "4K Timelapse RAW | 间隔 3s | ISO 100 | ND8", loc: "折多山/鱼子西观景台", done: false },
+        { id: "m2", title: "【川西风光 02】高山冰川湖泊贴水面 1cm 对称雪山倒影", time: "08:30-09:30", mount: "迷你脚架贴水面极低机位", param: "40MP RAW 拍照 & 4K 60fps | CPL 偏振镜 | D-Log M", loc: "冷噶措/牛奶海浅滩", done: false },
+        { id: "m3", title: "【川西人像 03】旷野草甸 1.5m 延长杆贴地升起揭示雪山大景", time: "10:30-11:30", mount: "1.5m 延长杆摇臂运镜", param: "4K 60fps | HorizonSteady | 10-bit D-Log M | ND16", loc: "塔公草原雪山正前方", done: false },
+        { id: "m4", title: "【川西人像 04】越野车窗外吸盘回拍公路旅行迎风侧颜", time: "15:00-16:30", mount: "副驾车门强力吸盘 + 安全绳", param: "4K 60fps | 标准(去畸变) 1.5x变焦 | 1/120s | ND16", loc: "434省道景观大道", done: false },
+        { id: "m5", title: "【川西星空 05】露营帐篷篝火暖光人像 + 15秒长曝光银河延时", time: "21:30-23:00", mount: "三脚架固定 (关闭防抖)", param: "星空延时：15s快门 | ISO 1600 | RAW；人像：SuperNight", loc: "新都桥星空营地", done: false }
+      ],
+      portrait: [
+        { id: "hp1", title: "【海边人像 01】磁吸挂脖第一视角：牵手奔向大海回眸笑脸", time: "15:30-16:15", mount: "磁吸挂脖支架倒装", param: "4K (4:3) 60fps | 155° 超广角 | 1/120s | ND16", loc: "白沙滩步道", done: false },
+        { id: "hp2", title: "【海边人像 02】分水球半水下同框：上半蓝天椰林+下半清澈海水", time: "16:15-17:00", mount: "6英寸分水球罩 + 漂浮手把", param: "4K (4:3) 120fps 慢动作 | 1/500s | 10-bit HLG", loc: "浅水珊瑚礁区", done: false },
+        { id: "hp3", title: "【海边人像 03】单人礁石漫步：三脚架智能人物居中自动跟拍", time: "17:00-17:30", mount: "三脚架固定 + Subject Tracking", param: "2.7K/4K 60fps | 开启智能人物跟随 | 语音控制", loc: "海角黑石滩", done: false },
+        { id: "hp4", title: "【海边人像 04】日落黄金时刻逆光发丝发光 + 2倍无损变焦特写", time: "17:30-18:15", mount: "手持齐眼高度侧逆光", param: "4K 16:9 120fps | 标准(去畸变) 2.0x变焦 | EV -0.3 | WB 5800K", loc: "日落西海岸沙滩", done: false }
+      ],
+      forest: [
+        { id: "f1", title: "【森林风光 01】清晨林间迷雾丁达尔耶稣光束横移推进", time: "07:30-08:30", mount: "1.5m 延长杆平稳横移", param: "4K 60fps | 标准(去畸变) | EV -0.7 压暗背景 | D-Log M", loc: "古树杉木林", done: false },
+        { id: "f2", title: "【森林慢门 02】秘境跌水瀑布 ND64 丝绸雾化水流长曝光", time: "09:30-10:30", mount: "八爪鱼脚架固定岩石 (关防抖)", param: "40MP RAW & 4K 24fps | 快门 1/2s | ISO 100 | ND64", loc: "溪谷中段瀑布", done: false },
+        { id: "f3", title: "【森林微距 03】离地 5cm 贴青苔落叶层低速推进 + 跨步前景", time: "10:30-11:15", mount: "倒握小脚架贴地机位", param: "4K 120fps 慢动作 | 广角 | 10-bit D-Log M", loc: "森林木栈道", done: false },
+        { id: "f4", title: "【森林收音 04】溪畔喝咖啡露营人像 + 双轨收录溪流鸟鸣白噪音", time: "11:15-12:00", mount: "磁吸底座吸于露营椅/桌边", param: "4K 60fps | 标准(去畸变) 1.5x | DJI Mic 2 + 机身环境音备份", loc: "溪边露营地", done: false }
+      ],
+      night: [
+        { id: "n1", title: "【蓝调夜拍 01】日落15分钟深蓝天幕 + 城市天台车流延时", time: "18:30-19:10", mount: "三脚架固定天台护栏", param: "4K Timelapse | 快门 2s | 间隔 4s | ISO 200", loc: "城市观景天台", done: false },
+        { id: "n2", title: "【霓虹人像 02】赛博街角店铺霓虹侧逆光人像漫步跟拍", time: "19:30-20:30", mount: "手持迷你脚架齐胸跟拍", param: "4K 30fps | 开启 SuperNight 超级夜景 | 快门 1/100s | 标准去畸变", loc: "繁华霓虹街区", done: false },
+        { id: "n3", title: "【雨夜创意 03】街角积水坑贴水面 1cm 霓虹镜像对称人像", time: "20:30-21:15", mount: "相机倒置贴积水路面", param: "40MP RAW & 4K 60fps | SuperNight | WB 4600K", loc: "十字路口斑马线旁", done: false }
+      ]
+    };
+
+    function loadPlanTemplate(tplKey) {
+      const list = PLAN_TEMPLATES[tplKey];
+      if (!list) return;
+      shotPlans = JSON.parse(JSON.stringify(list));
+      renderShotPlans();
+      showToast("已一键载入整套主题分镜拍摄计划！");
+    }
+
+    function addShotPlan() {
+      const tEl = document.getElementById("planTitleInput");
+      const timeEl = document.getElementById("planTimeInput");
+      const mEl = document.getElementById("planMountInput");
+      const paramEl = document.getElementById("planParamInput");
+      const locEl = document.getElementById("planLocInput");
+      if (!tEl.value.trim()) {
+        tEl.focus();
+        showToast("请输入分镜拍摄内容");
+        return;
+      }
+      shotPlans.unshift({
+        id: "sp-" + Date.now(),
+        title: tEl.value.trim(),
+        time: timeEl.value.trim() || "待定时间",
+        mount: mEl.value,
+        param: paramEl.value.trim(),
+        loc: locEl.value.trim(),
+        done: false
+      });
+      tEl.value = "";
+      locEl.value = "";
+      renderShotPlans();
+      showToast("已添加外拍分镜计划！");
+    }
+
+    function toggleShotPlan(idx) {
+      shotPlans[idx].done = !shotPlans[idx].done;
+      renderShotPlans();
+    }
+
+    function delShotPlan(idx) {
+      shotPlans.splice(idx, 1);
+      renderShotPlans();
+    }
+
+    function renderGears() {
+      safeSetItem(STORAGE_GEARS, JSON.stringify(gears));
+      const box = document.getElementById("gearChecklistBox");
+      box.innerHTML = "";
+      let checkedCnt = 0;
+      gears.forEach((g, idx) => {
+        if (g.checked) checkedCnt++;
+        const item = document.createElement("div");
+        item.className = "gear-item" + (g.checked ? " checked" : "");
+        item.onclick = () => {
+          gears[idx].checked = !gears[idx].checked;
+          renderGears();
+        };
+        item.innerHTML = `
+          <input type="checkbox" style="accent-color:#10b981;pointer-events:none;" ${g.checked ? "checked" : ""} />
+          <span style="flex:1; ${g.checked ? 'text-decoration:line-through;color:var(--text-sub);' : ''}">${escapeHtml(g.name)}</span>
+        `;
+        box.appendChild(item);
+      });
+      document.getElementById("gearProgressText").textContent = `已备齐 ${checkedCnt} / ${gears.length}`;
+    }
+
+    function addCustomGear() {
+      const el = document.getElementById("newGearInput");
+      if (!el.value.trim()) return;
+      gears.push({ name: el.value.trim(), checked: false });
+      el.value = "";
+      renderGears();
+    }
+
+    function openAddWorkModal() {
+      document.getElementById("addWorkModal").classList.add("open");
+    }
+    function closeAddWorkModal() {
+      document.getElementById("addWorkModal").classList.remove("open");
+    }
+    function saveNewWork() {
+      const title = document.getElementById("nwTitle").value.trim();
+      if (!title) {
+        showToast("请输入作品标题");
+        return;
+      }
+      const cat = document.getElementById("nwCat").value;
+      const model = document.getElementById("nwModel").value.trim() || "Osmo Action 5 Pro";
+      const img = document.getElementById("nwImg").value.trim() || "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?auto=format&fit=crop&w=1000&q=80";
+      const res = document.getElementById("nwRes").value.trim() || "4K 60fps";
+      const shut = document.getElementById("nwShut").value.trim() || "1/120s";
+      const eis = document.getElementById("nwEis").value.trim() || "RockSteady+";
+      const mount = document.getElementById("nwMount").value.trim() || "磁吸快拆支架";
+      const desc = document.getElementById("nwDesc").value.trim() || "自定义录入的 DJI Action 实拍灵感与参数配置。";
+
+      works.unshift({
+        id: "w-" + Date.now(),
+        title,
+        category: cat,
+        camera: model,
+        fov: "155° 超广角",
+        img,
+        res,
+        shutter: shut,
+        iso: "100-800",
+        color: "10-bit D-Log M",
+        eis,
+        mount,
+        desc
+      });
+      closeAddWorkModal();
+      renderWorks();
+      showToast("已录入新摄影灵感作品！");
+    }
+
+    function exportShootingPlanCSV() {
+      const headers = ["分镜内容", "计划时间段", "机位支架", "相机曝光与防抖参数", "地点与备注", "完成状态"];
+      const rows = shotPlans.map(p => [
+        p.title, p.time, p.mount, p.param, p.loc || "", p.done ? "已拍摄" : "待拍摄"
+      ]);
+      const csv = "\uFEFF" + [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "DJI_Action_外拍分镜通告单.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("已导出外拍分镜通告单 (CSV)！");
+    }
+
+    function downloadTextFile(filename, text, mime) {
+      const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportAllData() {
+      const payload = {
+        app: "DJI Action Lab",
+        version: 4,
+        exportedAt: new Date().toISOString(),
+        works,
+        shotPlans,
+        gears
+      };
+      const date = new Date().toISOString().slice(0, 10);
+      downloadTextFile(`DJI_Action_工作站备份_${date}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+      showToast("已导出作品、分镜和器材数据备份");
+    }
+
+    function triggerImportData() {
+      document.getElementById("importDataFile").click();
+    }
+
+    async function importAllData(event) {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = "";
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        const importedWorks = normalizeWorks(data.works);
+        const importedPlans = Array.isArray(data.shotPlans)
+          ? data.shotPlans.filter(item => item && typeof item === "object")
+          : null;
+        const importedGears = Array.isArray(data.gears)
+          ? data.gears.filter(item => item && typeof item === "object")
+          : null;
+        if (!importedWorks && !importedPlans && !importedGears) {
+          throw new Error("文件中没有可导入的数据");
+        }
+        if (!confirm("导入会覆盖当前作品库、分镜计划和器材清单，是否继续？")) return;
+        if (importedWorks) works = importedWorks;
+        if (importedPlans) shotPlans = importedPlans;
+        if (importedGears) gears = importedGears;
+        currentFilter = "all";
+        renderWorks();
+        renderShotPlans();
+        renderGears();
+        updateParamCalc();
+        renderPreview();
+        showToast("数据导入成功！");
+      } catch (err) {
+        console.error("导入失败：", err);
+        showToast("导入失败：请选择本站导出的 JSON 备份文件");
+      }
+    }
+
+    // Initialize all views and auto-dismiss boot intro after 2.3s
+    setHeroScene(0, document.querySelectorAll(".scene-chip")[0]);
+    renderWorks();
+    renderRigs();
+    updateParamCalc();
+    renderShotPlans();
+    renderGears();
+    renderPreview();
+
+    const worksGridEl = document.getElementById("worksGrid");
+    const homeFeaturedGridEl = document.getElementById("homeFeaturedGrid");
+    const detailModalBodyEl = document.getElementById("detailModalBody");
+    if (worksGridEl) worksGridEl.addEventListener("click", onWorkGridClick);
+    if (homeFeaturedGridEl) homeFeaturedGridEl.addEventListener("click", onWorkGridClick);
+    if (detailModalBodyEl) detailModalBodyEl.addEventListener("click", onDetailModalClick);
+
+    document.querySelectorAll(".vfp-nd-btn, .vfp-filter-card").forEach(el => {
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", "0");
+      if (!el.getAttribute("aria-label")) {
+        el.setAttribute("aria-label", el.textContent.trim().replace(/\s+/g, " "));
+      }
+    });
+
+    function applyImageFallback(img) {
+      if (!img || img.dataset.fallbackApplied === "1") return;
+      img.dataset.fallbackApplied = "1";
+      img.src = FALLBACK_IMG;
+    }
+    document.addEventListener("error", event => {
+      const target = event.target;
+      if (target && target.tagName === "IMG") applyImageFallback(target);
+    }, true);
+    document.querySelectorAll("img").forEach(img => {
+      img.addEventListener("error", () => applyImageFallback(img));
+      if (img.complete && img.naturalWidth === 0) applyImageFallback(img);
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeDetailModal();
+        closeAddWorkModal();
+        return;
+      }
+      if ((event.key === "Enter" || event.key === " ") && event.target.matches(".vfp-nd-btn, .vfp-filter-card")) {
+        event.preventDefault();
+        event.target.click();
+      }
+    });
+
+    updatePreviewSourceBadge();
+
+    // Optional deep-link presets: ?sport=waterfall&light=sunny&nd=6&cpl=1&lut=0
+    try {
+      const q = new URLSearchParams(location.search);
+      const sportEl = document.getElementById("calcSport");
+      const lightEl = document.getElementById("calcLight");
+      if (q.has("sport") && Array.from(sportEl.options).some(o => o.value === q.get("sport"))) sportEl.value = q.get("sport");
+      if (q.has("light") && Array.from(lightEl.options).some(o => o.value === q.get("light"))) lightEl.value = q.get("light");
+      updateParamCalc();
+      if (q.has("nd")) {
+        const v = Number(q.get("nd"));
+        vfpState.ndStops = isNaN(v) ? null : Math.max(0, Math.min(6, v));
+      }
+      if (q.get("cpl") === "1") {
+        vfpState.cpl = true;
+        document.getElementById("vfpCplToggle").classList.add("on");
+      }
+      if (q.get("lut") === "0") {
+        vfpState.lut = false;
+        document.getElementById("vfpLutToggle").classList.remove("on");
+      }
+      if (q.get("motion") === "0") {
+        vfpState.motion = false;
+        document.getElementById("vfpMotionToggle").classList.remove("on");
+      }
+      if (q.has("iso")) {
+        const isoVal = Number(q.get("iso"));
+        const isoIdx = VFP_ISO_STEPS.indexOf(isoVal);
+        if (isoIdx >= 0) {
+          vfpState.iso = isoVal;
+          const isoEl = document.getElementById("vfpIsoRange");
+          if (isoEl) isoEl.value = isoIdx;
+        }
+      }
+      if (q.has("wb")) {
+        const wbVal = Math.max(2500, Math.min(8500, Number(q.get("wb")) || 5600));
+        vfpState.wb = wbVal;
+        const wbEl = document.getElementById("vfpWbRange");
+        if (wbEl) wbEl.value = wbVal;
+      }
+      if (q.has("ratio")) {
+        const r = q.get("ratio");
+        if (["16:9", "4:3", "9:16"].includes(r)) {
+          vfpState.ratio = r;
+          document.querySelectorAll("#vfpRatioSeg button").forEach(b => b.classList.toggle("on", b.getAttribute("data-ratio") === r));
+        }
+      }
+      if (q.has("fov")) {
+        const f = q.get("fov");
+        if (["ultrawide", "wide", "standard", "zoom2"].includes(f)) {
+          vfpState.fov = f;
+          const fovSel = document.getElementById("vfpFovSelect");
+          if (fovSel) fovSel.value = f;
+        }
+      }
+      if (q.has("eis")) {
+        const e = q.get("eis");
+        if (["off", "rs", "rsplus", "horizon", "balance"].includes(e)) {
+          vfpState.eis = e;
+          const eisSel = document.getElementById("vfpEisSelect");
+          if (eisSel) eisSel.value = e;
+        }
+      }
+      if (q.has("ev")) {
+        const evVal = Math.max(-2, Math.min(2, Number(q.get("ev")) || 0));
+        vfpState.ev = evVal;
+        const evEl = document.getElementById("vfpEvRange");
+        if (evEl) evEl.value = evVal;
+      }
+      renderPreview();
+    } catch (e) {}
+
+    // Deep link: #lab / #works / #rigs / #plan
+    const initialHash = (location.hash || "").replace("#", "");
+    if (["works", "lab", "rigs", "plan"].includes(initialHash)) {
+      const idxMap = { works: 1, lab: 2, rigs: 3, plan: 4 };
+      switchPage(initialHash, document.querySelectorAll(".nav-btn")[idxMap[initialHash]]);
+      dismissIntro();
+    }
+
+    window._introAutoTimer = setTimeout(dismissIntro, 2300);
+  </script>
+</body>
+</html>
